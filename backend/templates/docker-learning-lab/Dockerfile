@@ -21,22 +21,11 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /
     apt-get update && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
     rm -rf /var/lib/apt/lists/*
 
-RUN locale-gen en_US.UTF-8
+RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
 
-RUN mkdir -p /var/run/sshd
-
-RUN echo '#!/bin/bash\n\
-set -e\n\
-USERNAME="${LABUSER:-labuser}"\n\
-PASSWORD="${LABPASS:-changeme}"\n\
-if ! id "$USERNAME" &>/dev/null; then\n\
-    useradd -m -s /bin/bash "$USERNAME"\n\
-    echo "$USERNAME:$PASSWORD" | chpasswd\n\
-    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers\n\
-fi\n\
-/usr/sbin/sshd 2>/dev/null || true\n\
-exec sleep infinity\n' > /entrypoint.sh && chmod +x /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 22
 CMD ["/entrypoint.sh"]

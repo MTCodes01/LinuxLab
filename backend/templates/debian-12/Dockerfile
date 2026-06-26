@@ -17,24 +17,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     locales \
     && rm -rf /var/lib/apt/lists/*
 
-RUN locale-gen en_US.UTF-8
+# Generate locale at build time
+RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
 
-RUN mkdir -p /var/run/sshd && \
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
+# SSH config (do NOT mkdir /run/sshd here — /run is a tmpfs at runtime)
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-RUN echo '#!/bin/bash\n\
-set -e\n\
-USERNAME="${LABUSER:-labuser}"\n\
-PASSWORD="${LABPASS:-changeme}"\n\
-if ! id "$USERNAME" &>/dev/null; then\n\
-    useradd -m -s /bin/bash "$USERNAME"\n\
-    echo "$USERNAME:$PASSWORD" | chpasswd\n\
-    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers\n\
-fi\n\
-if [ -f /etc/ssh/sshd_config ]; then /usr/sbin/sshd; fi\n\
-exec sleep infinity\n' > /entrypoint.sh && chmod +x /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 22
 CMD ["/entrypoint.sh"]

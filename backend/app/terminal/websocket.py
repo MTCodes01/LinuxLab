@@ -81,30 +81,65 @@ async def terminal_websocket(
             await websocket.close(code=4002)
             return
 
-        # Create exec instance in the container
+        # Wait for the Docker container to be fully running (handles restarting state)
+        def _wait_for_running(docker_id: str, timeout: int = 20) -> str:
+            """Poll Docker until container is running or timeout. Returns final status."""
+            import time
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                try:
+                    dc = client.containers.get(docker_id)
+                    dc.reload()
+                    if dc.status == "running":
+                        return "running"
+                    if dc.status in ("exited", "dead", "removing", "removed"):
+                        return dc.status
+                except Exception:
+                    pass
+                time.sleep(0.5)
+            return "timeout"
+
+        actual_status = await asyncio.to_thread(_wait_for_running, container.docker_id)
+        if actual_status != "running":
+            await websocket.send_text(
+                f"Container could not be reached (status: {actual_status}). "
+                "Try starting it again from the Containers page."
+            )
+            await websocket.close(code=4002)
+            return
+
+        # Create exec instance in the container (retry on 409 Conflict)
         def _create_exec():
-            dc = client.containers.get(container.docker_id)
-            # Use login shell for the container user; fallback to bash
-            exec_instance = client.api.exec_create(
-                dc.id,
-                cmd=["/bin/bash", "-c", f"su - {container.username} 2>/dev/null || exec /bin/bash"],
-                stdin=True,
-                stdout=True,
-                stderr=True,
-                tty=True,
-                environment={"TERM": "xterm-256color", "COLUMNS": "120", "LINES": "30"},
-            )
-            sock = client.api.exec_start(
-                exec_instance["Id"],
-                socket=True,
-                tty=True,
-            )
-            # Access the underlying socket — works for both urllib3 and requests backends
-            underlying = getattr(sock, "_sock", None) or getattr(sock, "raw", None)
-            if underlying is None:
-                # Last resort: the object itself may be socket-like
-                underlying = sock
-            return exec_instance["Id"], sock, underlying
+            import time
+            from docker.errors import APIError
+            last_err = None
+            for attempt in range(10):
+                try:
+                    dc = client.containers.get(container.docker_id)
+                    exec_instance = client.api.exec_create(
+                        dc.id,
+                        cmd=["/bin/bash", "-c", f"su - {container.username} 2>/dev/null || exec /bin/bash"],
+                        stdin=True,
+                        stdout=True,
+                        stderr=True,
+                        tty=True,
+                        environment={"TERM": "xterm-256color", "COLUMNS": "120", "LINES": "30"},
+                    )
+                    sock = client.api.exec_start(
+                        exec_instance["Id"],
+                        socket=True,
+                        tty=True,
+                    )
+                    # Access the underlying socket
+                    underlying = getattr(sock, "_sock", None) or getattr(sock, "raw", None) or sock
+                    return exec_instance["Id"], sock, underlying
+                except APIError as e:
+                    if e.response is not None and e.response.status_code == 409:
+                        last_err = e
+                        time.sleep(1)
+                        continue
+                    raise
+            raise last_err
 
         exec_id, sock_wrapper, raw_socket = await asyncio.to_thread(_create_exec)
 
