@@ -8,31 +8,47 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
-function StatCard({ title, value, subtitle, progress, icon: Icon, colorClass }) {
+function Sparkline({ points, strokeColor = "var(--color-primary)" }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between shadow-sm hover:border-border-hover transition-default animate-slide-up">
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <p className="text-xs font-medium text-text-muted mb-1">{title}</p>
-          <h3 className="text-2xl font-bold text-text-primary tracking-tight font-tech">{value}</h3>
+    <div className="h-6 w-full mt-3 opacity-70">
+      <svg className="w-full h-full overflow-visible" viewBox="0 0 100 30" preserveAspectRatio="none">
+        <path
+          d={points}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function StatCard({ title, value, trend, trendType = "up", points, icon: Icon, colorClass }) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm hover:border-border-hover transition-default animate-slide-up">
+      <div>
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">{title}</span>
+          <Icon className={`w-3.5 h-3.5 ${colorClass} opacity-80`} />
         </div>
-        <div className={`p-2 rounded-lg bg-surface border border-border flex items-center justify-center`}>
-          <Icon className={`w-4 h-4 ${colorClass}`} />
+        
+        <div className="flex items-baseline gap-2 mt-1">
+          <span className="text-xl font-bold text-text-primary tracking-tight font-tech">{value}</span>
+          {trend && (
+            <span className={`text-[10px] font-semibold font-mono ${
+              trendType === "up" ? "text-success" : 
+              trendType === "down" ? "text-danger" : "text-text-muted"
+            }`}>
+              {trend}
+            </span>
+          )}
         </div>
       </div>
       
-      <div>
-        {progress !== undefined ? (
-          <div className="w-full bg-surface rounded-full h-1 mt-2 overflow-hidden border border-border">
-            <div className={`h-1 rounded-full bg-primary`} style={{ width: `${progress}%` }} />
-          </div>
-        ) : null}
-        {subtitle && (
-          <p className="text-xs text-text-muted mt-2 font-medium flex items-center gap-1">
-            {subtitle}
-          </p>
-        )}
-      </div>
+      {/* Sparkline chart at the bottom (like the second image) */}
+      <Sparkline points={points} strokeColor={`var(--color-${colorClass.includes('primary') ? 'primary' : colorClass.includes('success') ? 'success' : colorClass.includes('warning') ? 'warning' : 'accent'})`} />
     </div>
   );
 }
@@ -111,50 +127,117 @@ export default function DashboardPage() {
   return (
     <DashboardLayout title="Dashboard">
       
-      {/* 5 Statistic Cards */}
+      {/* 1. Stat Cards Row (compact, sparkline, trend) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <StatCard
-          title="Running Containers"
+          title="Running"
           value={runningContainers}
-          subtitle="Active environments"
+          trend="+2 active"
+          trendType="up"
+          points="M0,25 Q15,10 30,20 T60,8 T90,15 T100,5"
           icon={Activity}
           colorClass="text-success"
         />
         <StatCard
-          title="Stopped Containers"
+          title="Stopped"
           value={stoppedContainers}
-          subtitle="Idle environments"
+          trend="stable"
+          trendType="neutral"
+          points="M0,15 L20,15 L40,15 Q60,15 80,18 T100,10"
           icon={Square}
-          colorClass="text-text-secondary"
+          colorClass="text-text-muted"
         />
         <StatCard
-          title="CPU Allocation"
+          title="CPU Core Load"
           value={`${overview?.total_cpu_allocated || 0} Cores`}
-          subtitle={`${cpuProgress}% of ${totalCores} Cores`}
-          progress={cpuProgress}
+          trend={`${cpuProgress}% alloc`}
+          trendType="neutral"
+          points="M0,20 Q15,28 30,12 T60,25 T90,10 T100,18"
           icon={Cpu}
           colorClass="text-primary"
         />
         <StatCard
-          title="RAM Allocation"
+          title="RAM Committed"
           value={`${Math.round((overview?.total_ram_allocated_mb || 0) / 1024)} GB`}
-          subtitle={`${ramProgress}% of 256 GB`}
-          progress={ramProgress}
+          trend={`${ramProgress}% alloc`}
+          trendType="neutral"
+          points="M0,25 Q15,22 30,25 T60,18 T90,12 T100,8"
           icon={HardDrive}
           colorClass="text-accent"
         />
         <StatCard
-          title="Disk Allocation"
+          title="Disk Allocated"
           value={`${diskAllocated} GB`}
-          subtitle={`${diskProgress}% of ${totalDisk} GB`}
-          progress={diskProgress}
+          trend={`${diskProgress}% limit`}
+          trendType="neutral"
+          points="M0,22 L30,22 L50,18 L80,18 L100,15"
           icon={Box}
           colorClass="text-warning"
         />
       </div>
 
-      {/* Main Grid: Containers and Activity */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-6">
+      {/* 2. Large Full-Width Chart Section (inspired by the second image) */}
+      <div className="bg-card border border-border rounded-xl p-5 md:p-6 mb-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6">
+          <div>
+            <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">System Resource Allocations</h3>
+            <p className="text-[10px] text-text-muted mt-0.5">CPU and Memory capacity overcommit rates</p>
+          </div>
+          
+          <div className="flex gap-4 text-[10px] font-mono">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-0.5 bg-primary" />
+              <span className="text-text-secondary">CPU load ({cpuProgress}%)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-0.5 bg-accent" />
+              <span className="text-text-secondary">RAM load ({ramProgress}%)</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="h-56 relative bg-surface/10 rounded-lg border border-border/30 overflow-hidden">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible opacity-95">
+            {/* Gridlines */}
+            <line x1="0" y1="25" x2="100" y2="25" stroke="var(--color-border)" strokeWidth="0.5" strokeDasharray="3" />
+            <line x1="0" y1="50" x2="100" y2="50" stroke="var(--color-border)" strokeWidth="0.5" strokeDasharray="3" />
+            <line x1="0" y1="75" x2="100" y2="75" stroke="var(--color-border)" strokeWidth="0.5" strokeDasharray="3" />
+            
+            {/* Gradient fills */}
+            <defs>
+              <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.0" />
+              </linearGradient>
+              <linearGradient id="ramGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.1" />
+                <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+            
+            {/* CPU Path */}
+            <path d="M0,100 L0,70 Q10,50 20,65 T40,40 T60,55 T80,30 T100,45 L100,100 Z" fill="url(#cpuGrad)" />
+            <path d="M0,70 Q10,50 20,65 T40,40 T60,55 T80,30 T100,45" fill="none" stroke="var(--color-primary)" strokeWidth="1.8" vectorEffect="non-scaling-stroke" />
+
+            {/* RAM Path */}
+            <path d="M0,100 L0,80 Q15,70 30,85 T60,60 T90,75 L100,65 L100,100 Z" fill="url(#ramGrad)" />
+            <path d="M0,80 Q15,70 30,85 T60,60 T90,75 L100,65" fill="none" stroke="var(--color-accent)" strokeWidth="1.8" strokeDasharray="1.5" vectorEffect="non-scaling-stroke" />
+          </svg>
+          
+          {/* Timeline Labels */}
+          <div className="absolute bottom-2 left-4 right-4 flex justify-between text-[9px] text-text-muted font-mono pointer-events-none">
+            <span>09:00</span>
+            <span>10:00</span>
+            <span>11:00</span>
+            <span>12:00</span>
+            <span>13:00</span>
+            <span>14:00</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Bottom Grid: Containers and Activity */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         
         {/* Left 8 Columns: Container Overview Table */}
         <div className="xl:col-span-8 bg-card border border-border rounded-xl flex flex-col overflow-hidden shadow-sm">
@@ -296,12 +379,12 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Activity Feed */}
-          <div className="bg-card border border-border rounded-xl flex flex-col flex-1 shadow-sm overflow-hidden min-h-[300px]">
+          <div className="bg-card border border-border rounded-xl flex flex-col flex-1 shadow-sm overflow-hidden min-h-[250px]">
             <div className="px-5 py-4 border-b border-border bg-surface/20">
               <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">Recent Activity</h3>
             </div>
             
-            <div className="p-5 flex-1 overflow-y-auto max-h-[350px]">
+            <div className="p-5 flex-1 overflow-y-auto max-h-[300px]">
               {logs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full py-12 text-text-muted opacity-40">
                   <Activity className="w-6 h-6 mb-1.5" />
@@ -335,58 +418,6 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Live Resource Usage Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-up">
-        
-        {/* CPU Chart */}
-        <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-surface/20">
-            <div>
-              <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">CPU Allocation Load</h3>
-              <p className="text-[10px] text-text-muted mt-0.5">Real-time CPU core share distribution</p>
-            </div>
-            <span className="text-[9px] font-semibold text-success bg-success/10 border border-success/15 px-2 py-0.5 rounded">Live</span>
-          </div>
-          <div className="h-48 px-5 py-4 relative flex items-end justify-between gap-1 bg-surface/10">
-            {[30, 20, 45, 15, 60, 35, 50, 40, 75, 55, 65, 30, 40, 35, 50, 45, 60, 70, 50, 65, 35, 80, 70, 50, 45].map((h, i) => (
-              <div 
-                key={i} 
-                className="w-full bg-primary/20 hover:bg-primary/50 border-t border-primary/30 transition-colors relative group rounded-t-sm" 
-                style={{ height: `${h}%` }}
-              >
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-card text-text-primary text-[9px] px-1.5 py-0.5 rounded border border-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap shadow-sm">
-                  {h}% load
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* RAM Chart */}
-        <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-surface/20">
-            <div>
-              <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">Memory Allocation Load</h3>
-              <p className="text-[10px] text-text-muted mt-0.5">Allocated memory capacity utilization</p>
-            </div>
-            <span className="text-[9px] font-semibold text-success bg-success/10 border border-success/15 px-2 py-0.5 rounded">Live</span>
-          </div>
-          <div className="h-48 px-5 py-4 relative bg-surface/10">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible opacity-90">
-              <defs>
-                <linearGradient id="ramGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              <path d="M0,100 L0,70 Q15,55 30,75 T60,50 T90,65 L100,55 L100,100 Z" fill="url(#ramGradient)" />
-              <path d="M0,70 Q15,55 30,75 T60,50 T90,65 L100,55" fill="none" stroke="var(--color-primary)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-            </svg>
           </div>
         </div>
 
