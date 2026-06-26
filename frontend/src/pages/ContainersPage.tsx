@@ -1,22 +1,48 @@
-import { useState } from "react"
-import { Search, Play, Square, RotateCw, Terminal, Settings2, Trash2, MoreVertical, Server } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { Search, Play, Square, RotateCw, Terminal, Trash2, Server } from "lucide-react"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
-const mockContainers = [
-  { id: "c1", name: "web-server-01", template: "Debian 12", status: "running", cpu: "2.1%", ram: "128MB / 1GB", disk: "4GB / 20GB", ip: "10.0.0.5", created: "2024-03-10" },
-  { id: "c2", name: "db-primary", template: "Ubuntu 24.04", status: "running", cpu: "12.5%", ram: "2.4GB / 4GB", disk: "45GB / 100GB", ip: "10.0.0.6", created: "2024-03-08" },
-  { id: "c3", name: "redis-cache", template: "Alpine Linux", status: "running", cpu: "0.5%", ram: "64MB / 512MB", disk: "1GB / 5GB", ip: "10.0.0.7", created: "2024-03-12" },
-  { id: "c4", name: "dev-environment", template: "Ubuntu 24.04", status: "stopped", cpu: "-", ram: "-", disk: "12GB / 50GB", ip: "Offline", created: "2024-03-14" },
-  { id: "c5", name: "failed-job", template: "Fedora", status: "error", cpu: "-", ram: "-", disk: "-", ip: "Offline", created: "2024-03-15" },
-]
+import { containersAPI } from "@/api/client"
+import { useNavigate } from "react-router-dom"
 
 export default function ContainersPage() {
   const [search, setSearch] = useState("")
-  
+  const [containers, setContainers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate();
+
+  const fetchContainers = async () => {
+    try {
+      const { data } = await containersAPI.list()
+      setContainers(data.containers)
+    } catch (error) {
+      console.error("Failed to load containers", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchContainers()
+  }, [])
+
+  const handleAction = async (id: number, action: 'start' | 'stop' | 'restart' | 'delete') => {
+    try {
+      await containersAPI[action](id);
+      fetchContainers();
+    } catch (error) {
+      console.error(`Failed to ${action} container`, error);
+    }
+  }
+
+  const filteredContainers = containers.filter(c => 
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.distro.toLowerCase().includes(search.toLowerCase())
+  )
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -61,46 +87,62 @@ export default function ContainersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockContainers.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium text-foreground">{c.name}</TableCell>
-                  <TableCell>{c.template}</TableCell>
-                  <TableCell>
-                    <Badge variant={c.status === "running" ? "success" : c.status === "error" ? "destructive" : "stopped"}>
-                      {c.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{c.cpu}</TableCell>
-                  <TableCell>{c.ram}</TableCell>
-                  <TableCell>{c.disk}</TableCell>
-                  <TableCell className="font-mono text-xs">{c.ip}</TableCell>
-                  <TableCell>{c.created}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {c.status === 'running' ? (
-                        <>
-                          <Button variant="ghost" size="icon" title="Terminal" className="text-muted-foreground hover:text-foreground">
-                            <Terminal className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" title="Stop" className="text-muted-foreground hover:text-destructive">
-                            <Square className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" title="Restart" className="text-muted-foreground hover:text-foreground">
-                            <RotateCw className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <Button variant="ghost" size="icon" title="Start" className="text-muted-foreground hover:text-success">
-                          <Play className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8">
+                    <div className="flex justify-center">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredContainers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    No containers found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredContainers.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium text-foreground">{c.name}</TableCell>
+                    <TableCell>{c.distro}</TableCell>
+                    <TableCell>
+                      <Badge variant={c.status === "running" ? "success" : c.status === "error" ? "destructive" : "stopped"}>
+                        {c.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{c.cpu_limit} Cores</TableCell>
+                    <TableCell>{c.ram_limit} MB</TableCell>
+                    <TableCell>{c.storage_limit} GB</TableCell>
+                    <TableCell className="font-mono text-xs">{c.ip_address || "None"}</TableCell>
+                    <TableCell>{new Date(c.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {c.status === 'running' ? (
+                          <>
+                            <Button onClick={() => navigate(`/terminal/${c.id}`)} variant="ghost" size="icon" title="Terminal" className="text-muted-foreground hover:text-foreground">
+                              <Terminal className="h-4 w-4" />
+                            </Button>
+                            <Button onClick={() => handleAction(c.id, 'stop')} variant="ghost" size="icon" title="Stop" className="text-muted-foreground hover:text-destructive">
+                              <Square className="h-4 w-4" />
+                            </Button>
+                            <Button onClick={() => handleAction(c.id, 'restart')} variant="ghost" size="icon" title="Restart" className="text-muted-foreground hover:text-foreground">
+                              <RotateCw className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button onClick={() => handleAction(c.id, 'start')} variant="ghost" size="icon" title="Start" className="text-muted-foreground hover:text-success">
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button onClick={() => handleAction(c.id, 'delete')} variant="ghost" size="icon" title="Delete" className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

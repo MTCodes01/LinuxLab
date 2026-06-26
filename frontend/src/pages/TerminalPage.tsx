@@ -5,15 +5,17 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getTerminalWSUrl } from '@/api/client';
 
 export default function TerminalPage() {
   const { containerId } = useParams();
   const navigate = useNavigate();
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!terminalRef.current) return;
+    if (!terminalRef.current || !containerId) return;
 
     const term = new Terminal({
       cursorBlink: true,
@@ -35,16 +37,38 @@ export default function TerminalPage() {
     
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
-    
     term.open(terminalRef.current);
     fitAddon.fit();
     xtermRef.current = term;
 
     term.writeln(`Connecting to container ${containerId}...`);
-    setTimeout(() => {
+
+    const wsUrl = getTerminalWSUrl(containerId);
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
       term.writeln(`\x1b[32mConnected successfully.\x1b[0m`);
-      term.write(`root@${containerId}:~# `);
-    }, 1000);
+    };
+
+    ws.onmessage = (event) => {
+      term.write(event.data);
+    };
+
+    ws.onerror = (error) => {
+      term.writeln(`\x1b[31mConnection error.\x1b[0m`);
+      console.error('WebSocket Error:', error);
+    };
+
+    ws.onclose = () => {
+      term.writeln(`\n\x1b[33mConnection closed.\x1b[0m`);
+    };
+
+    term.onData((data) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(data);
+      }
+    });
 
     const handleResize = () => fitAddon.fit();
     window.addEventListener('resize', handleResize);
@@ -52,6 +76,7 @@ export default function TerminalPage() {
     return () => {
       window.removeEventListener('resize', handleResize);
       term.dispose();
+      ws.close();
     };
   }, [containerId]);
 

@@ -1,16 +1,31 @@
+import { useState, useEffect } from "react"
 import { TerminalSquare, Unplug } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-
-const mockSessions = [
-  { id: "s1", user: "admin", container: "web-server-01", ip: "192.168.1.45", startedAt: "10 mins ago", duration: "10m 23s", type: "Web Terminal" },
-  { id: "s2", user: "developer", container: "db-primary", ip: "10.0.0.23", startedAt: "2 hours ago", duration: "2h 5m 12s", type: "SSH" },
-  { id: "s3", user: "admin", container: "ubuntu-test", ip: "192.168.1.45", startedAt: "1 day ago", duration: "24h 1m 5s", type: "Web Terminal" },
-]
+import { sessionsAPI } from "@/api/client"
+import { useNavigate } from "react-router-dom"
 
 export default function SessionsPage() {
+  const [sessions, setSessions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const { data } = await sessionsAPI.list()
+        setSessions(data.sessions || data)
+      } catch (error) {
+        console.error("Failed to load sessions", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSessions()
+  }, [])
+
   return (
     <div className="space-y-6">
       <div>
@@ -36,34 +51,45 @@ export default function SessionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockSessions.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="font-medium text-foreground">{s.user}</TableCell>
-                  <TableCell>{s.container}</TableCell>
-                  <TableCell>
-                    <Badge variant={s.type === "SSH" ? "secondary" : "default"}>{s.type}</Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{s.ip}</TableCell>
-                  <TableCell>{s.startedAt}</TableCell>
-                  <TableCell className="font-mono">{s.duration}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" title="View Terminal" className="text-muted-foreground hover:text-primary">
-                        <TerminalSquare className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" title="Disconnect" className="text-muted-foreground hover:text-destructive">
-                        <Unplug className="h-4 w-4" />
-                      </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <div className="flex justify-center">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-              {mockSessions.length === 0 && (
+              ) : sessions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No active sessions found.
                   </TableCell>
                 </TableRow>
+              ) : (
+                sessions.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium text-foreground">{s.user || s.username}</TableCell>
+                    <TableCell>{s.container_id}</TableCell>
+                    <TableCell>
+                      <Badge variant={s.type === "ssh" ? "secondary" : "default"}>{s.type}</Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{s.ip_address || "N/A"}</TableCell>
+                    <TableCell>{new Date(s.started_at).toLocaleString()}</TableCell>
+                    <TableCell className="font-mono">{s.duration || "Active"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {s.type !== "ssh" && (
+                          <Button onClick={() => navigate(`/terminal/${s.container_id}`)} variant="ghost" size="icon" title="View Terminal" className="text-muted-foreground hover:text-primary">
+                            <TerminalSquare className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="icon" title="Disconnect" className="text-muted-foreground hover:text-destructive">
+                          <Unplug className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
