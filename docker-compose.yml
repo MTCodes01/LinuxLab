@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: linuxlab-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - linuxlab-data:/app/data
+    networks:
+      - linuxlab-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on: []
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: linuxlab-frontend
+    restart: unless-stopped
+    networks:
+      - linuxlab-net
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: linuxlab-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - linuxlab-net
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  linuxlab-data:
+    driver: local
+
+networks:
+  linuxlab-net:
+    driver: bridge
+  linuxlab-containers:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
