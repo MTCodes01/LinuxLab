@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { containersAPI } from "@/api/client"
 import { useNavigate } from "react-router-dom"
+import { DeployContainerModal } from "@/components/containers/DeployContainerModal"
 
 export default function ContainersPage() {
   const [search, setSearch] = useState("")
   const [containers, setContainers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isDeployOpen, setIsDeployOpen] = useState(false)
   const navigate = useNavigate();
 
   const fetchContainers = async () => {
@@ -50,7 +52,7 @@ export default function ContainersPage() {
           <h1 className="text-3xl font-bold tracking-tight">Containers</h1>
           <p className="text-muted-foreground">Manage your deployed containers.</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setIsDeployOpen(true)}>
           <Server className="h-4 w-4" />
           Deploy Container
         </Button>
@@ -147,6 +149,11 @@ export default function ContainersPage() {
           </Table>
         </CardContent>
       </Card>
+      <DeployContainerModal 
+        open={isDeployOpen} 
+        onOpenChange={setIsDeployOpen} 
+        onSuccess={fetchContainers} 
+      />
     </div>
   )
 }

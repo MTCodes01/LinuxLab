@@ -3,10 +3,13 @@ import { Server, Download, Cpu, HardDrive, MemoryStick } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { templatesAPI } from "@/api/client"
+import { DeployContainerModal } from "@/components/containers/DeployContainerModal"
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [deployModalOpen, setDeployModalOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>()
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -61,7 +64,13 @@ export default function TemplatesPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full gap-2 group-hover:bg-primary/90">
+                <Button 
+                  className="w-full gap-2 group-hover:bg-primary/90"
+                  onClick={() => {
+                    setSelectedTemplate(t.key)
+                    setDeployModalOpen(true)
+                  }}
+                >
                   <Download className="h-4 w-4" />
                   Deploy
                 </Button>
@@ -75,6 +84,11 @@ export default function TemplatesPage() {
           )}
         </div>
       )}
+      <DeployContainerModal 
+        open={deployModalOpen} 
+        onOpenChange={setDeployModalOpen}
+        initialTemplate={selectedTemplate}
+      />
     </div>
   )
 }

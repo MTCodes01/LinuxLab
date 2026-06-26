@@ -1,8 +1,12 @@
+import { useState } from "react"
 import { Search, Bell, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DeployContainerModal } from "@/components/containers/DeployContainerModal"
 
 export function TopNav() {
+  const [isDeployOpen, setIsDeployOpen] = useState(false)
+
   return (
     <header className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
       <div className="flex h-full items-center justify-between px-6 gap-4">
@@ -21,12 +25,17 @@ export function TopNav() {
           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
             <Bell className="h-5 w-5" />
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setIsDeployOpen(true)}>
             <Plus className="h-4 w-4" />
             New Container
           </Button>
         </div>
       </div>
+      <DeployContainerModal 
+        open={isDeployOpen} 
+        onOpenChange={setIsDeployOpen} 
+        onSuccess={() => window.location.reload()}
+      />
     </header>
   )
 }
