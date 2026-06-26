@@ -1,54 +1,65 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { templatesAPI, containersAPI } from '../api/client';
-import { 
-  Plus, Trash2, Cpu, HardDrive, Layout, ChevronRight, X, 
-  Terminal, ShieldAlert, CheckCircle, Info
+import {
+  Plus, Trash2, Cpu, HardDrive, X, Terminal, ShieldAlert,
+  CheckCircle, Info, Zap, ChevronRight
 } from 'lucide-react';
+
+function DistroEmoji({ distro }) {
+  const name = distro.toLowerCase();
+  if (name.includes('ubuntu')) return '🟠';
+  if (name.includes('debian')) return '🔴';
+  if (name.includes('alpine')) return '🔵';
+  if (name.includes('arch'))   return '🔵';
+  if (name.includes('rocky') || name.includes('centos')) return '🟢';
+  if (name.includes('kali'))   return '🟣';
+  return '🐧';
+}
+
+function getDistroGradient(distro) {
+  const name = distro.toLowerCase();
+  if (name.includes('ubuntu')) return 'from-orange-500/20 to-orange-600/5 border-orange-500/20';
+  if (name.includes('debian')) return 'from-red-500/20 to-red-600/5 border-red-500/20';
+  if (name.includes('alpine')) return 'from-blue-500/20 to-blue-600/5 border-blue-500/20';
+  if (name.includes('arch'))   return 'from-cyan-500/20 to-cyan-600/5 border-cyan-500/20';
+  if (name.includes('rocky') || name.includes('centos')) return 'from-green-500/20 to-green-600/5 border-green-500/20';
+  if (name.includes('kali'))   return 'from-purple-500/20 to-purple-600/5 border-purple-500/20';
+  return 'from-violet-500/20 to-violet-600/5 border-violet-500/20';
+}
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deployingTemplate, setDeployingTemplate] = useState(null);
-  
-  // Deploy Form State
-  const [deployName, setDeployName] = useState('');
-  const [deployUser, setDeployUser] = useState('linuxlab');
-  const [deployPass, setDeployPass] = useState('linuxlab123');
-  const [deploying, setDeploying] = useState(false);
+
+  const [deployName, setDeployName]   = useState('');
+  const [deployUser, setDeployUser]   = useState('linuxlab');
+  const [deployPass, setDeployPass]   = useState('');
+  const [deploying, setDeploying]     = useState(false);
   const [deploySuccess, setDeploySuccess] = useState(null);
   const [deployError, setDeployError] = useState('');
 
-  const fetchTemplates = () => {
-    setLoading(true);
-    templatesAPI.list()
-      .then(({ data }) => { 
-        setTemplates(data || []); 
-        setLoading(false); 
-      })
-      .catch(() => setLoading(false));
-  };
-
   useEffect(() => {
-    fetchTemplates();
+    templatesAPI.list()
+      .then(({ data }) => { setTemplates(data || []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, []);
 
   const handleDelete = async (id, name) => {
     if (!confirm(`Delete template "${name}"?`)) return;
     try {
       await templatesAPI.delete(id);
-      setTemplates(templates.filter(t => t.id !== id));
-    } catch (err) {
-      console.error('Failed to delete template:', err);
-    }
+      setTemplates(t => t.filter(x => x.id !== id));
+    } catch {}
   };
 
   const handleOpenDeploy = (template) => {
-    const randomSuffix = Math.floor(100 + Math.random() * 900);
-    const sanitizedDistro = template.distro.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-    setDeployName(`${sanitizedDistro}-sandbox-${randomSuffix}`);
+    const suffix = Math.floor(100 + Math.random() * 900);
+    const sanitized = template.distro.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+    setDeployName(`${sanitized}-sandbox-${suffix}`);
     setDeployUser('linuxlab');
-    setDeployPass(`lab-pass-${randomSuffix}`);
+    setDeployPass(`lab-pass-${suffix}`);
     setDeployingTemplate(template);
     setDeployError('');
     setDeploySuccess(null);
@@ -60,12 +71,10 @@ export default function TemplatesPage() {
       setDeployError('Please fill out all fields.');
       return;
     }
-
     setDeploying(true);
     setDeployError('');
-    
     try {
-      const payload = {
+      const { data } = await containersAPI.create({
         name: deployName,
         username: deployUser,
         password: deployPass,
@@ -74,15 +83,13 @@ export default function TemplatesPage() {
         ram_limit: deployingTemplate.default_ram,
         storage_limit: deployingTemplate.default_storage,
         ssh_enabled: true,
-        lifetime_hours: null
-      };
-
-      const { data } = await containersAPI.create(payload);
+        lifetime_hours: null,
+      });
       setDeploySuccess({
         name: deployName,
         username: deployUser,
         password: deployPass,
-        ip: data?.ip_address || 'assigning IP...'
+        ip: data?.ip_address || 'assigning...',
       });
     } catch (err) {
       setDeployError(err.response?.data?.detail || 'Failed to deploy container.');
@@ -91,99 +98,87 @@ export default function TemplatesPage() {
     }
   };
 
-  const getDistroColor = (distro) => {
-    const name = distro.toLowerCase();
-    if (name.includes('ubuntu')) return 'border-orange-500/20 text-orange-400 bg-orange-500/5';
-    if (name.includes('debian')) return 'border-red-500/20 text-red-400 bg-red-500/5';
-    if (name.includes('alpine')) return 'border-blue-400/20 text-blue-400 bg-blue-400/5';
-    if (name.includes('rocky') || name.includes('centos')) return 'border-green-500/20 text-green-400 bg-green-500/5';
-    if (name.includes('arch')) return 'border-cyan-400/20 text-cyan-400 bg-cyan-400/5';
-    return 'border-purple-500/20 text-purple-400 bg-purple-500/5';
-  };
-
   const categories = [...new Set(templates.map(t => t.category || 'OS Distributions'))];
 
   return (
-    <DashboardLayout title="Templates">
-      
+    <DashboardLayout>
       {loading ? (
-        <div className="bg-card border border-border rounded-xl p-16 flex justify-center items-center">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="card flex items-center justify-center h-64">
+          <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       ) : templates.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
-          <div className="w-12 h-12 rounded-lg bg-surface border border-border flex items-center justify-center text-text-muted mb-4">
-            <Layout className="w-5 h-5 opacity-40" />
+        <div className="card flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center mb-4">
+            <Zap className="w-7 h-7 text-text-muted opacity-40" />
           </div>
-          <h3 className="text-sm font-semibold text-text-primary mb-1">No templates available</h3>
-          <p className="text-xs text-text-muted max-w-xs mb-4">Templates help bootstrap standard development envs instantly.</p>
+          <h3 className="text-lg font-bold text-text-primary mb-1">No templates available</h3>
+          <p className="text-sm text-text-muted max-w-xs">
+            Templates help you instantly bootstrap standard environments.
+          </p>
         </div>
       ) : (
         <div className="space-y-8">
-          {categories.map((category) => (
-            <div key={category} className="space-y-4">
-              <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                {category}
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {categories.map(category => (
+            <div key={category}>
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-sm font-bold text-text-secondary uppercase tracking-widest">
+                  {category}
+                </h2>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {templates
                   .filter(t => (t.category || 'OS Distributions') === category)
                   .map((template, i) => {
-                    const colorClass = getDistroColor(template.distro);
+                    const gradient = getDistroGradient(template.distro);
                     return (
                       <div
                         key={template.id}
-                        className="bg-card border border-border rounded-xl p-5 shadow-sm hover:border-border-hover transition-default flex flex-col justify-between animate-slide-up group"
-                        style={{ animationDelay: `${i * 30}ms` }}
+                        className="card card-hover flex flex-col overflow-hidden animate-slide-up group"
+                        style={{ animationDelay: `${i * 40}ms` }}
                       >
-                        <div>
-                          {/* Header */}
-                          <div className="flex items-start justify-between mb-4">
-                            <span className="text-2xl font-tech">{template.icon || '🐧'}</span>
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={() => handleDelete(template.id, template.name)} 
-                                className="p-1 rounded text-text-muted hover:text-danger hover:bg-surface border border-transparent hover:border-border transition-default cursor-pointer"
-                                title="Delete Template"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                        {/* Gradient header */}
+                        <div className={`bg-gradient-to-br ${gradient} border-b border-border/50 p-4 relative`}>
+                          <div className="flex items-start justify-between">
+                            <span className="text-3xl">{template.icon || <DistroEmoji distro={template.distro} />}</span>
+                            <button
+                              onClick={() => handleDelete(template.id, template.name)}
+                              className="p-1.5 rounded-lg text-text-muted hover:text-danger hover:bg-danger/10 transition-default opacity-0 group-hover:opacity-100"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                          
-                          {/* Details */}
-                          <h3 className="text-sm font-semibold text-text-primary mb-1 tracking-tight">
-                            {template.name}
-                          </h3>
-                          
-                          <p className="text-xs text-text-muted mb-4 line-clamp-2 leading-relaxed">
-                            {template.description || 'Quick provisioned Linux environment.'}
-                          </p>
                         </div>
 
-                        {/* Footer specs & deployment button */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between text-[10px] text-text-secondary font-mono border-t border-border/50 pt-3.5">
-                            <div className="flex items-center gap-1">
-                              <Cpu className="w-3 h-3 text-text-muted" />
-                              <span>{template.default_cpu} vCPU</span>
+                        {/* Body */}
+                        <div className="p-4 flex flex-col flex-1">
+                          <h3 className="font-bold text-text-primary text-base mb-1">{template.name}</h3>
+                          <p className="text-sm text-text-muted leading-relaxed flex-1 mb-4">
+                            {template.description || 'Pre-configured Linux environment.'}
+                          </p>
+
+                          {/* Specs */}
+                          <div className="flex items-center justify-between text-xs text-text-muted font-mono border-t border-border/50 pt-3 mb-4">
+                            <div className="flex items-center gap-1.5">
+                              <Cpu className="w-3.5 h-3.5" />
+                              {template.default_cpu} vCPU
                             </div>
-                            <div className="flex items-center gap-1">
-                              <HardDrive className="w-3 h-3 text-text-muted" />
-                              <span>{template.default_ram} MB RAM</span>
+                            <div className="flex items-center gap-1.5">
+                              <HardDrive className="w-3.5 h-3.5" />
+                              {template.default_ram} MB
                             </div>
                           </div>
 
                           <button
                             onClick={() => handleOpenDeploy(template)}
-                            className="w-full py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg border border-primary/20 transition-default flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                            className="btn btn-primary w-full"
                           >
-                            <span>Deploy Template</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            Deploy Template
+                            <ChevronRight className="w-4 h-4" />
                           </button>
                         </div>
-
                       </div>
                     );
                   })}
@@ -193,142 +188,127 @@ export default function TemplatesPage() {
         </div>
       )}
 
-      {/* One-Click Deploy Dialog */}
+      {/* Deploy Modal */}
       {deployingTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !deploying && setDeployingTemplate(null)} />
-          
-          <div className="relative bg-card border border-border w-full max-w-sm rounded-xl overflow-hidden shadow-lg animate-slide-up z-10">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => !deploying && setDeployingTemplate(null)}
+          />
+
+          <div className="relative bg-card border border-border w-full max-w-md rounded-2xl overflow-hidden shadow-lg animate-scale-in z-10">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface/20">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface/30">
               <div>
-                <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">Deploy {deployingTemplate.name}</h3>
-                <p className="text-[10px] text-text-muted mt-0.5">Quick container configuration</p>
+                <h3 className="font-bold text-text-primary">
+                  Deploy {deployingTemplate.name}
+                </h3>
+                <p className="text-xs text-text-muted mt-0.5">Configure your new container</p>
               </div>
-              <button 
-                onClick={() => !deploying && setDeployingTemplate(null)} 
-                className="p-1 rounded hover:bg-surface text-text-secondary hover:text-text-primary transition-default cursor-pointer"
+              <button
+                onClick={() => !deploying && setDeployingTemplate(null)}
+                className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/5 transition-default"
                 disabled={deploying}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Content / Form */}
-            <form onSubmit={handleDeploySubmit} className="p-5 space-y-4">
+            <div className="p-6 space-y-4">
+              {/* Error */}
               {deployError && (
-                <div className="p-3 bg-danger/10 border border-danger/15 rounded-lg text-xs text-danger flex items-start gap-2 animate-fade-in">
+                <div className="flex items-start gap-2.5 p-3 bg-danger/10 border border-danger/20 rounded-xl text-sm text-danger animate-fade-in">
                   <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span>{deployError}</span>
+                  {deployError}
                 </div>
               )}
 
               {deploySuccess ? (
                 <div className="space-y-4 animate-fade-in">
-                  <div className="p-3 bg-success/10 border border-success/15 rounded-lg text-xs text-success flex items-start gap-2">
+                  <div className="flex items-start gap-2.5 p-3 bg-success/10 border border-success/20 rounded-xl text-sm text-success">
                     <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold">Container Provisioned Successfully!</p>
-                      <p className="mt-1 font-mono text-[10px]">Name: {deploySuccess.name}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="p-3 bg-surface border border-border rounded-lg space-y-2 text-xs">
-                    <p className="text-text-secondary font-medium uppercase text-[9px] tracking-wider">Default Connection Credentials</p>
-                    <div className="grid grid-cols-3 gap-y-1 text-text-secondary">
-                      <span className="text-text-muted">Username:</span>
-                      <span className="col-span-2 font-mono font-semibold text-text-primary">{deploySuccess.username}</span>
-                      <span className="text-text-muted">Password:</span>
-                      <span className="col-span-2 font-mono font-semibold text-text-primary">{deploySuccess.password}</span>
-                      <span className="text-text-muted">SSH access:</span>
-                      <span className="col-span-2 font-mono text-text-primary">ssh {deploySuccess.username}@{deploySuccess.ip}</span>
+                      <p className="font-semibold">Container Provisioned!</p>
+                      <p className="text-xs mt-1 font-mono">{deploySuccess.name}</p>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 justify-end pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setDeployingTemplate(null)}
-                      className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-default cursor-pointer"
-                    >
-                      Finish
-                    </button>
+                  <div className="p-4 bg-surface border border-border rounded-xl space-y-2 text-sm">
+                    <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
+                      Connection Info
+                    </p>
+                    {[
+                      ['Username', deploySuccess.username],
+                      ['Password', deploySuccess.password],
+                      ['SSH', `ssh ${deploySuccess.username}@${deploySuccess.ip}`],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex items-baseline gap-3">
+                        <span className="text-text-muted text-xs w-20 flex-shrink-0">{k}</span>
+                        <code className="font-mono text-xs text-text-primary flex-1 break-all">{v}</code>
+                      </div>
+                    ))}
                   </div>
+
+                  <button
+                    onClick={() => setDeployingTemplate(null)}
+                    className="btn btn-primary w-full"
+                  >
+                    Done
+                  </button>
                 </div>
               ) : (
-                <>
-                  <div className="space-y-3.5">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1.5">Container Name</label>
-                      <input 
-                        type="text" 
-                        value={deployName}
-                        onChange={(e) => setDeployName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
-                        className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-text-primary font-mono"
-                        placeholder="sandbox-name"
+                <form onSubmit={handleDeploySubmit} className="space-y-4">
+                  {[
+                    { label: 'Container Name', id: 'name', value: deployName, onChange: e => setDeployName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '')), placeholder: 'sandbox-name', mono: true },
+                    { label: 'SSH Username',   id: 'user', value: deployUser, onChange: e => setDeployUser(e.target.value), placeholder: 'linuxlab', mono: true },
+                    { label: 'SSH Password',   id: 'pass', value: deployPass, onChange: e => setDeployPass(e.target.value), placeholder: '••••••••', type: 'password' },
+                  ].map(({ label, id, value, onChange, placeholder, mono, type }) => (
+                    <div key={id}>
+                      <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
+                        {label}
+                      </label>
+                      <input
+                        type={type || 'text'}
+                        value={value}
+                        onChange={onChange}
+                        placeholder={placeholder}
                         required
                         disabled={deploying}
+                        className={`input-base ${mono ? 'font-mono' : ''}`}
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1.5">SSH Username</label>
-                      <input 
-                        type="text" 
-                        value={deployUser}
-                        onChange={(e) => setDeployUser(e.target.value.replace(/[^a-z_][a-z0-9_-]*/g, ''))}
-                        className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-text-primary font-mono"
-                        required
-                        disabled={deploying}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1.5">SSH Password</label>
-                      <input 
-                        type="password" 
-                        value={deployPass}
-                        onChange={(e) => setDeployPass(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-text-primary"
-                        placeholder="SecretPassword"
-                        required
-                        disabled={deploying}
-                      />
-                    </div>
-                  </div>
+                  ))}
 
-                  <div className="p-3 bg-surface border border-border rounded-lg text-[10px] text-text-muted flex items-start gap-2">
+                  <div className="flex items-start gap-2.5 p-3 bg-surface border border-border rounded-xl text-xs text-text-muted">
                     <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-primary" />
-                    <span>This container will allocate <b>{deployingTemplate.default_cpu} vCPU</b> and <b>{deployingTemplate.default_ram} MB memory</b>. SSH will be auto-enabled.</span>
+                    Allocates <strong className="text-text-secondary">{deployingTemplate.default_cpu} vCPU</strong> and{' '}
+                    <strong className="text-text-secondary">{deployingTemplate.default_ram} MB RAM</strong>. SSH auto-enabled.
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-2">
+                  <div className="flex items-center gap-3 pt-1">
                     <button
                       type="button"
                       onClick={() => setDeployingTemplate(null)}
-                      className="px-3 py-1.5 text-text-secondary hover:text-text-primary hover:bg-surface border border-transparent hover:border-border rounded-lg transition-default text-xs cursor-pointer"
+                      className="btn btn-secondary flex-1"
                       disabled={deploying}
                     >
                       Cancel
                     </button>
-                    <button
-                      type="submit"
-                      className="flex items-center gap-1 px-4 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg border border-primary/20 transition-default cursor-pointer"
-                      disabled={deploying}
-                    >
+                    <button type="submit" className="btn btn-primary flex-1" disabled={deploying}>
                       {deploying ? (
-                        <div className="w-3.5 h-3.5 border border-white/20 border-t-white rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
-                        <Terminal className="w-3.5 h-3.5" />
+                        <Terminal className="w-4 h-4" />
                       )}
-                      <span>{deploying ? 'Deploying...' : 'Start Instance'}</span>
+                      {deploying ? 'Deploying...' : 'Start Instance'}
                     </button>
                   </div>
-                </>
+                </form>
               )}
-            </form>
+            </div>
           </div>
         </div>
       )}
-
     </DashboardLayout>
   );
 }
