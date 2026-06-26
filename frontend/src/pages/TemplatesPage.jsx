@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import { templatesAPI } from '../api/client';
 import { Plus, Pencil, Trash2, Copy, BookTemplate } from 'lucide-react';
 
-export default function TemplatesApp() {
+export default function TemplatesPage() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +26,7 @@ export default function TemplatesApp() {
   const categories = [...new Set(templates.map(t => t.category || 'Uncategorized'))];
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <DashboardLayout title="Templates">
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -70,6 +71,6 @@ export default function TemplatesApp() {
           ))}
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }

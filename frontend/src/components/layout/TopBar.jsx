@@ -5,10 +5,9 @@ export default function TopBar({ title }) {
   const { user } = useAuth();
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 glass"
-            style={{ borderRadius: 0, borderLeft: 'none', borderRight: 'none', borderTop: 'none' }}>
+    <header className="h-16 flex items-center justify-between px-6 bg-surface-900/90 backdrop-blur-md border-b-2 border-primary relative z-20">
       {/* Title */}
-      <h1 className="text-xl font-semibold text-text-primary">{title}</h1>
+      <h1 className="text-xl font-heading font-bold text-text-primary uppercase tracking-wide">{title}</h1>
 
       {/* Right side */}
       <div className="flex items-center gap-4">
@@ -18,20 +17,18 @@ export default function TopBar({ title }) {
           <input
             type="text"
             placeholder="Search containers..."
-            className="pl-10 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 w-64 transition-default"
-            style={{ background: 'var(--color-surface-700)', border: '1px solid var(--color-glass-border)', color: 'var(--color-text-primary)' }}
+            className="pl-10 pr-4 py-2 bg-surface-800 border-2 border-surface-700 focus:border-primary text-sm focus:outline-none w-64 transition-all text-text-primary font-mono placeholder:text-text-muted"
           />
         </div>
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-xl glass-hover transition-default"
-                style={{ background: 'var(--color-glass-bg)', border: '1px solid var(--color-glass-border)' }}>
+        <button className="relative p-2 bg-surface-800 border-2 border-surface-700 hover:border-primary transition-all">
           <Bell className="w-5 h-5 text-text-secondary" />
           <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse-glow" />
         </button>
 
         {/* User avatar */}
-        <div className="flex items-center gap-3 pl-4 border-l" style={{ borderColor: 'var(--color-glass-border)' }}>
+        <div className="flex items-center gap-3 pl-4 border-l-2 border-surface-700">
           <div className="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center">
             <User className="w-4 h-4 text-white" />
           </div>

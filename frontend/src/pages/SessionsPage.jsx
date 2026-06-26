@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import { sessionsAPI } from '../api/client';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Users, Monitor, Wifi, Clock } from 'lucide-react';
 
-export default function SessionsApp() {
+export default function SessionsPage() {
   const [sessions, setSessions] = useState([]);
   const [total, setTotal] = useState(0);
   const [active, setActive] = useState(0);
@@ -22,7 +23,7 @@ export default function SessionsApp() {
   }, [activeOnly]);
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <DashboardLayout title="Sessions">
       {/* Stats */}
       <div className="flex items-center gap-4 mb-6">
         <div className="glass px-4 py-2 flex items-center gap-2">
@@ -91,6 +92,6 @@ export default function SessionsApp() {
           </tbody>
         </table>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

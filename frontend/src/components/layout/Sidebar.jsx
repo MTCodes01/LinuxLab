@@ -21,13 +21,12 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen glass z-40 flex flex-col transition-all duration-300 ${
+      className={`fixed left-0 top-0 h-screen bg-surface-900/90 backdrop-blur-md z-40 flex flex-col transition-all duration-300 border-r-2 border-primary ${
         collapsed ? 'w-[72px]' : 'w-[240px]'
       }`}
-      style={{ borderRadius: 0, borderLeft: 'none', borderTop: 'none', borderBottom: 'none' }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b" style={{ borderColor: 'var(--color-glass-border)' }}>
+      <div className="flex items-center gap-3 px-4 h-16 border-b-2 border-primary">
         <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
           <Terminal className="w-5 h-5 text-white" />
         </div>
@@ -46,15 +45,11 @@ export default function Sidebar() {
             <NavLink
               key={to}
               to={to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-default group ${
+              className={`flex items-center gap-3 px-3 py-2.5 font-mono text-sm uppercase tracking-wider font-bold transition-all group ${
                 isActive
-                  ? 'text-primary'
-                  : 'text-text-secondary hover:text-text-primary'
+                  ? 'text-primary bg-primary/10 border-l-4 border-primary'
+                  : 'text-text-secondary hover:text-primary hover:bg-surface-800 border-l-4 border-transparent'
               }`}
-              style={isActive ? {
-                background: 'rgba(6, 182, 212, 0.1)',
-                boxShadow: '0 0 20px rgba(6, 182, 212, 0.05)',
-              } : {}}
             >
               <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-primary' : 'group-hover:text-text-primary'}`} />
               {!collapsed && <span>{label}</span>}
@@ -67,7 +62,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Collapse toggle + logout */}
-      <div className="p-3 border-t space-y-1" style={{ borderColor: 'var(--color-glass-border)' }}>
+      <div className="p-3 border-t-2 border-primary space-y-1">
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-text-primary transition-default w-full"
