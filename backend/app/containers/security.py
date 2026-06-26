@@ -94,9 +94,8 @@ def get_host_config(
         "restart_policy": {"Name": "unless-stopped"},
     }
 
-    # Storage limit (only works with overlay2 on xfs with pquota)
-    # We attempt to set it but log a warning if it fails
-    config["storage_opt"] = {"size": f"{storage_limit}g"}
+    # Storage limit via storage_opt requires overlay2+xfs+pquota which is non-standard.
+    # We skip it here and rely on ulimits/disk quotas if needed at the OS level.
 
     # SSH port mapping
     if ssh_port is not None:
