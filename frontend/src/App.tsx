@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './auth/AuthContext';
 import ProtectedRoute from './auth/ProtectedRoute';
 import LoginPage from './auth/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -7,8 +6,9 @@ import ContainersPage from './pages/ContainersPage';
 import TerminalPage from './pages/TerminalPage';
 import TemplatesPage from './pages/TemplatesPage';
 import SessionsPage from './pages/SessionsPage';
-import LogsPage from './pages/LogsPage';
+import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
+import { AppLayout } from './layout/AppLayout';
 
 export default function App() {
   return (
@@ -16,13 +16,15 @@ export default function App() {
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected routes */}
-      <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/containers" element={<ProtectedRoute><ContainersPage /></ProtectedRoute>} />
-      <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
-      <Route path="/sessions" element={<ProtectedRoute><SessionsPage /></ProtectedRoute>} />
-      <Route path="/logs" element={<ProtectedRoute><LogsPage /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      {/* Protected Layout routes */}
+      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/containers" element={<ContainersPage />} />
+        <Route path="/templates" element={<TemplatesPage />} />
+        <Route path="/sessions" element={<SessionsPage />} />
+        <Route path="/activity" element={<ActivityPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
 
       {/* Terminal — full screen, still protected */}
       <Route path="/terminal/:containerId" element={<ProtectedRoute><TerminalPage /></ProtectedRoute>} />
