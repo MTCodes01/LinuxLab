@@ -4,7 +4,7 @@ import CreateContainerModal from '../components/containers/CreateContainerModal'
 import { containersAPI } from '../api/client';
 import {
   Plus, Search, Box, Play, Square, Terminal, Trash2,
-  RotateCcw, Copy, Check, ChevronDown
+  RotateCcw, Copy, Check
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +18,6 @@ function StatusBadge({ status }) {
   };
   return (
     <span className={`status-badge ${map[status] || 'status-stopped'}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current" />
       <span className="capitalize">{status}</span>
     </span>
   );
@@ -63,10 +62,6 @@ export default function ContainersPage() {
       else if (action === 'start')   await containersAPI.start(id);
       else if (action === 'stop')    await containersAPI.stop(id);
       else if (action === 'restart') await containersAPI.restart(id);
-      else if (action === 'reset') {
-        if (!confirm('Reset will destroy and recreate this container. Continue?')) return;
-        await containersAPI.reset(id);
-      }
       fetchContainers();
     } catch (err) {
       console.error(`Action ${action} failed:`, err);
@@ -90,11 +85,10 @@ export default function ContainersPage() {
 
   return (
     <DashboardLayout>
-
       {/* Top bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
         {/* Filter Tabs */}
-        <div className="pill-tabs">
+        <div className="flex items-center gap-1 border border-border bg-surface p-1 rounded">
           {[
             { key: 'all',     label: `All (${stats.total})` },
             { key: 'running', label: `Running (${stats.running})` },
@@ -103,7 +97,8 @@ export default function ContainersPage() {
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`pill-tab ${filter === key ? 'active' : ''}`}
+              className={`px-3 py-1 text-xs font-semibold rounded transition-fast
+                ${filter === key ? 'bg-primary text-white' : 'text-text-muted hover:text-text-primary hover:bg-elevated'}`}
             >
               {label}
             </button>
@@ -111,84 +106,68 @@ export default function ContainersPage() {
         </div>
 
         {/* Search + Deploy */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-none sm:w-56">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
             <input
               type="text"
               placeholder="Search containers..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="input-base pl-9 w-full"
+              className="input-base pl-8 w-full text-xs"
             />
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="btn btn-primary flex-shrink-0"
+            className="btn btn-primary text-xs py-1.5 px-3 flex-shrink-0"
           >
-            <Plus className="w-4 h-4" />
-            Deploy
+            <Plus className="w-3.5 h-3.5" />
+            Deploy Container
           </button>
         </div>
       </div>
 
       {/* Content */}
-      {loading ? (
-        <div className="card flex items-center justify-center h-64">
-          <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center mb-4">
-            <Box className="w-7 h-7 text-text-muted opacity-40" />
-          </div>
-          <h3 className="text-lg font-bold text-text-primary mb-1">
-            {containers.length === 0 ? 'No containers deployed' : 'No matching containers'}
-          </h3>
-          <p className="text-sm text-text-muted max-w-sm mb-6">
-            {containers.length === 0
-              ? 'Provision your first isolated Linux environment in seconds.'
-              : 'Try adjusting your search or filter.'}
-          </p>
-          {containers.length === 0 && (
-            <button onClick={() => setShowCreate(true)} className="btn btn-primary">
-              <Plus className="w-4 h-4" /> Deploy Container
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Container</th>
+                <th>Status</th>
+                <th>Resources</th>
+                <th className="hidden md:table-cell">Uptime</th>
+                <th className="hidden lg:table-cell">SSH</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
                 <tr>
-                  <th>Container</th>
-                  <th>Status</th>
-                  <th>CPU</th>
-                  <th>RAM</th>
-                  <th className="hidden md:table-cell">Uptime</th>
-                  <th className="hidden lg:table-cell">SSH</th>
-                  <th className="text-right">Actions</th>
+                  <td colSpan={6} className="text-center py-8 text-text-muted">Loading containers...</td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((c) => {
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-text-muted">
+                    No containers found.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((c) => {
                   const isRunning = c.status === 'running';
                   const uptime = isRunning && c.created_at
                     ? formatDistanceToNow(new Date(c.created_at), { addSuffix: false })
                     : '—';
 
                   return (
-                    <tr key={c.id} className="group">
+                    <tr key={c.id}>
                       {/* Name */}
                       <td>
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-surface border border-border flex items-center justify-center flex-shrink-0 group-hover:border-primary/30 transition-default">
-                            <Box className="w-4 h-4 text-text-muted group-hover:text-primary transition-default" />
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <Box className="w-4 h-4 text-text-muted" />
                           <div>
-                            <p className="font-semibold text-text-primary text-sm">{c.name}</p>
-                            <p className="text-xs text-text-muted font-mono">{c.distro} · {c.username}</p>
+                            <p className="font-semibold text-text-primary text-sm leading-tight">{c.name}</p>
+                            <p className="text-[11px] text-text-muted font-mono leading-tight mt-0.5">{c.distro} · {c.username}</p>
                           </div>
                         </div>
                       </td>
@@ -196,29 +175,24 @@ export default function ContainersPage() {
                       {/* Status */}
                       <td><StatusBadge status={c.status} /></td>
 
-                      {/* CPU */}
+                      {/* Resources */}
                       <td>
-                        <span className="font-mono text-sm text-text-secondary">{c.cpu_cores} Cores</span>
-                      </td>
-
-                      {/* RAM */}
-                      <td>
-                        <span className="font-mono text-sm text-text-secondary">{c.ram_mb} MB</span>
+                        <span className="font-mono text-xs text-text-secondary">{c.cpu_cores}C / {c.ram_mb}M</span>
                       </td>
 
                       {/* Uptime */}
                       <td className="hidden md:table-cell">
-                        <span className="text-sm text-text-muted">{uptime}</span>
+                        <span className="text-xs text-text-muted">{uptime}</span>
                       </td>
 
                       {/* SSH */}
                       <td className="hidden lg:table-cell">
                         {c.ssh_enabled && c.ip_address ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <code className="text-xs">{c.ip_address}</code>
                             <button
                               onClick={() => handleCopySSH(c)}
-                              className="p-1 rounded text-text-muted hover:text-text-primary transition-default cursor-pointer"
+                              className="p-1 rounded text-text-muted hover:text-text-primary bg-elevated hover:bg-border transition-fast cursor-pointer border border-border"
                               title="Copy SSH command"
                             >
                               {copyingId === c.id
@@ -233,59 +207,59 @@ export default function ContainersPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-default">
+                      <td>
+                        <div className="flex items-center gap-1">
                           {isRunning ? (
                             <>
                               <button
                                 onClick={() => handleAction(c.id, 'stop')}
-                                className="btn btn-ghost p-1.5 hover:text-warning"
+                                className="btn btn-secondary text-[11px] px-2 py-1"
                                 title="Stop"
                               >
-                                <Square className="w-4 h-4" />
+                                <Square className="w-3 h-3" /> Stop
                               </button>
                               <button
                                 onClick={() => handleAction(c.id, 'restart')}
-                                className="btn btn-ghost p-1.5 hover:text-primary"
+                                className="btn btn-secondary text-[11px] px-2 py-1"
                                 title="Restart"
                               >
-                                <RotateCcw className="w-4 h-4" />
+                                <RotateCcw className="w-3 h-3" /> Restart
                               </button>
                               <button
                                 onClick={() => navigate(`/terminal/${c.id}`)}
-                                className="btn btn-ghost p-1.5 hover:text-primary"
+                                className="btn btn-secondary text-[11px] px-2 py-1"
                                 title="Open Terminal"
                               >
-                                <Terminal className="w-4 h-4" />
+                                <Terminal className="w-3 h-3" /> Console
                               </button>
                             </>
                           ) : (
                             <button
                               onClick={() => handleAction(c.id, 'start')}
-                              className="btn btn-ghost p-1.5 hover:text-success"
+                              className="btn btn-secondary text-[11px] px-2 py-1 text-success"
                               title="Start"
                             >
-                              <Play className="w-4 h-4" />
+                              <Play className="w-3 h-3" /> Start
                             </button>
                           )}
-                          <div className="w-px h-4 bg-border mx-0.5" />
+                          <div className="w-px h-4 bg-border mx-1" />
                           <button
                             onClick={() => handleAction(c.id, 'delete')}
-                            className="btn btn-ghost p-1.5 btn-danger"
+                            className="btn btn-danger text-[11px] px-2 py-1"
                             title="Delete"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3" /> Remove
                           </button>
                         </div>
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
       {showCreate && (
         <CreateContainerModal

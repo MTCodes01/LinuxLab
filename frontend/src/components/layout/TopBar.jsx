@@ -1,5 +1,5 @@
 import { useAuth } from '../../auth/AuthContext';
-import { Search, Bell, Plus, Menu, ChevronRight } from 'lucide-react';
+import { Search, Bell, Plus, Menu } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const pageTitles = {
@@ -22,10 +22,10 @@ export default function TopBar({ onMobileMenuOpen }) {
 
   return (
     <header className="
-      sticky top-0 z-30 h-16 flex-shrink-0
+      sticky top-0 z-30 h-14 flex-shrink-0
       flex items-center justify-between
-      px-5 md:px-7
-      bg-background/80 backdrop-blur-md
+      px-4 md:px-6
+      bg-background
       border-b border-border
     ">
       {/* Left: Mobile menu + Page title */}
@@ -33,18 +33,18 @@ export default function TopBar({ onMobileMenuOpen }) {
         {/* Mobile hamburger */}
         <button
           onClick={onMobileMenuOpen}
-          className="lg:hidden p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/5 transition-default flex-shrink-0"
+          className="lg:hidden p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-elevated transition-fast flex-shrink-0"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         {/* Page heading */}
         <div className="min-w-0">
-          <h1 className="text-base font-bold text-text-primary leading-none truncate">
+          <h1 className="text-sm font-bold text-text-primary leading-none truncate">
             {page.title}
           </h1>
           {page.subtitle && (
-            <p className="text-xs text-text-muted mt-0.5 hidden sm:block truncate">
+            <p className="text-[11px] text-text-muted mt-0.5 hidden sm:block truncate">
               {page.subtitle}
             </p>
           )}
@@ -52,54 +52,36 @@ export default function TopBar({ onMobileMenuOpen }) {
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {/* Search — hidden on small screens */}
+      <div className="flex items-center gap-3 flex-shrink-0">
+        {/* Search */}
         <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
           <input
             type="text"
             placeholder="Search..."
-            className="input-base pl-9 pr-3 py-1.5 w-48 lg:w-60 text-sm"
-            style={{ fontSize: '0.8125rem' }}
+            className="input-base pl-8 pr-3 py-1 w-48 text-xs bg-surface"
           />
         </div>
 
-        {/* New Container */}
-        <button
-          onClick={() => navigate('/containers?create=true')}
-          className="btn btn-primary text-sm px-3 py-2 hidden sm:inline-flex"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Container</span>
-        </button>
-
-        {/* Mobile new container (icon only) */}
-        <button
-          onClick={() => navigate('/containers?create=true')}
-          className="sm:hidden p-2 rounded-lg bg-primary text-white hover:bg-primary-hover transition-default"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-
         {/* Divider */}
-        <div className="hidden sm:block w-px h-5 bg-border mx-1" />
+        <div className="hidden sm:block w-px h-4 bg-border mx-1" />
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/5 transition-default">
-          <Bell className="w-4.5 h-4.5 w-[18px] h-[18px]" />
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary" />
+        <button className="relative p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-elevated transition-fast">
+          <Bell className="w-4 h-4" />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
         </button>
 
-        {/* User avatar */}
-        <div className="flex items-center gap-2 pl-1">
-          <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center cursor-pointer hover:opacity-90 transition-default shadow-glow">
-            <span className="text-xs font-bold text-white">
+        {/* User */}
+        <div className="flex items-center gap-2 pl-2 border-l border-border ml-1">
+          <span className="hidden md:inline text-xs font-medium text-text-secondary">
+            {user?.username || 'admin'}
+          </span>
+          <div className="w-7 h-7 rounded bg-elevated border border-border flex items-center justify-center cursor-pointer hover:border-primary transition-fast">
+            <span className="text-xs font-bold text-text-secondary">
               {(user?.username || 'A')[0].toUpperCase()}
             </span>
           </div>
-          <span className="hidden md:inline text-sm font-medium text-text-secondary">
-            {user?.username || 'admin'}
-          </span>
         </div>
       </div>
     </header>
