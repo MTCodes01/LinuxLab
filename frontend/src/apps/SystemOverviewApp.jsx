@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import DashboardLayout from '../components/layout/DashboardLayout';
 import { monitoringAPI, containersAPI, logsAPI } from '../api/client';
 import { Box, Cpu, HardDrive, MemoryStick, Activity, Plus, Clock } from 'lucide-react';
 import anime from 'animejs';
@@ -94,7 +93,7 @@ function RecentActivity({ logs }) {
   );
 }
 
-export default function DashboardPage() {
+export default function SystemOverviewApp() {
   const [overview, setOverview] = useState(null);
   const [containers, setContainers] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -121,7 +120,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <DashboardLayout title="Dashboard">
+    <div className="p-6 h-full flex flex-col gap-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
@@ -208,6 +207,6 @@ export default function DashboardPage() {
           <RecentActivity logs={logs} />
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import DashboardLayout from '../components/layout/DashboardLayout';
 import ContainerCard from '../components/containers/ContainerCard';
 import CreateContainerModal from '../components/containers/CreateContainerModal';
 import { containersAPI } from '../api/client';
 import { Plus, Search, Filter } from 'lucide-react';
 
-export default function ContainersPage() {
+export default function ContainersApp() {
   const [containers, setContainers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -59,7 +58,7 @@ export default function ContainersPage() {
                  c.distro.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <DashboardLayout title="Containers">
+    <div className="p-6 h-full flex flex-col">
       {/* Header with stats and actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
@@ -162,6 +161,6 @@ export default function ContainersPage() {
           }}
         />
       )}
-    </DashboardLayout>
+    </div>
   );
 }

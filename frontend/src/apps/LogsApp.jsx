@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import DashboardLayout from '../components/layout/DashboardLayout';
 import { logsAPI } from '../api/client';
 import { formatDistanceToNow, format } from 'date-fns';
 import { FileText, Filter, Download } from 'lucide-react';
@@ -24,7 +23,7 @@ const actionLabels = {
   ssh_login: 'SSH Login',
 };
 
-export default function LogsPage() {
+export default function LogsApp() {
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -57,7 +56,7 @@ export default function LogsPage() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <DashboardLayout title="Activity Logs">
+    <div className="p-6 h-full flex flex-col">
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <button
@@ -159,6 +158,6 @@ export default function LogsPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
