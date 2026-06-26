@@ -4,55 +4,91 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { containersAPI, templatesAPI } from "@/api/client"
-import { useNavigate } from "react-router-dom"
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialTemplate?: string;
+  initialTemplate?: string;  // distro key e.g. "debian-12"
   onSuccess?: () => void;
+}
+
+interface Template {
+  id: number;
+  name: string;
+  distro: string;
+  description?: string;
+  default_cpu: number;
+  default_ram: number;
+  default_storage: number;
 }
 
 export function DeployContainerModal({ open, onOpenChange, initialTemplate, onSuccess }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [templates, setTemplates] = useState<any[]>([])
-  
+  const [templates, setTemplates] = useState<Template[]>([])
+
   const [formData, setFormData] = useState({
     name: "",
-    username: "root",
+    username: "admin",
     password: "",
-    distro: initialTemplate || "",
+    distro: "",
     cpu_limit: 1,
     ram_limit: 512,
     storage_limit: 10,
-    ssh_enabled: true
+    ssh_enabled: true,
   })
 
   useEffect(() => {
-    if (open) {
-      templatesAPI.list().then(res => {
-        setTemplates(res.data)
-        if (initialTemplate) {
-          setFormData(prev => ({ ...prev, distro: initialTemplate }))
-        } else if (res.data.length > 0) {
-          setFormData(prev => ({ ...prev, distro: res.data[0].key }))
-        }
-      }).catch(err => console.error("Failed to fetch templates", err))
-    }
+    if (!open) return
+    setError("")
+    setFormData(prev => ({ ...prev, name: "", password: "" }))
+
+    templatesAPI.list().then(res => {
+      const list: Template[] = res.data
+      setTemplates(list)
+
+      // Pick the initial template or the first one
+      const match = initialTemplate
+        ? list.find(t => t.distro === initialTemplate) ?? list[0]
+        : list[0]
+
+      if (match) {
+        setFormData(prev => ({
+          ...prev,
+          distro: match.distro,
+          cpu_limit: match.default_cpu,
+          ram_limit: match.default_ram,
+          storage_limit: match.default_storage,
+        }))
+      }
+    }).catch(() => setError("Failed to load templates."))
   }, [open, initialTemplate])
+
+  // When user changes the distro, auto-fill defaults from that template
+  const handleDistroChange = (distro: string) => {
+    const match = templates.find(t => t.distro === distro)
+    if (match) {
+      setFormData(prev => ({
+        ...prev,
+        distro,
+        cpu_limit: match.default_cpu,
+        ram_limit: match.default_ram,
+        storage_limit: match.default_storage,
+      }))
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
-    
+
     try {
       await containersAPI.create(formData)
       onOpenChange(false)
       if (onSuccess) onSuccess()
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to deploy container")
+      setError(err.response?.data?.detail || "Failed to deploy container.")
     } finally {
       setLoading(false)
     }
@@ -60,108 +96,122 @@ export function DeployContainerModal({ open, onOpenChange, initialTemplate, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>Deploy New Container</DialogTitle>
           <DialogDescription>
             Configure your new container instance. It will be provisioned immediately.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {error && (
             <div className="p-3 bg-destructive/15 text-destructive text-sm rounded-md border border-destructive/30">
               {error}
             </div>
           )}
-          
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Container Name</Label>
-              <Input 
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Container Name</Label>
+              <Input
+                id="name"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                placeholder="web-server-01" 
-                required 
+                placeholder="web-server-01"
+                required
                 pattern="^[a-zA-Z0-9_-]+$"
+                title="Only letters, numbers, underscores and hyphens"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Template (Distro)</Label>
-              <select 
+            <div className="space-y-1.5">
+              <Label htmlFor="distro">Template</Label>
+              <select
+                id="distro"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={formData.distro}
-                onChange={e => setFormData({ ...formData, distro: e.target.value })}
+                onChange={e => handleDistroChange(e.target.value)}
                 required
               >
                 {templates.map(t => (
-                  <option key={t.key} value={t.key}>{t.name}</option>
+                  <option key={t.id} value={t.distro}>
+                    {t.name}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Username</Label>
-              <Input 
+            <div className="space-y-1.5">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
                 value={formData.username}
                 onChange={e => setFormData({ ...formData, username: e.target.value })}
-                placeholder="root" 
-                required 
+                placeholder="admin"
+                required
               />
             </div>
-            <div className="space-y-2">
-              <Label>Password</Label>
-              <Input 
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
                 type="password"
                 value={formData.password}
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
-                placeholder="••••••••" 
-                required 
+                placeholder="••••••••"
+                required
                 minLength={4}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>CPU Cores</Label>
-              <Input 
-                type="number" 
+            <div className="space-y-1.5">
+              <Label htmlFor="cpu">CPU Cores</Label>
+              <Input
+                id="cpu"
+                type="number"
                 min={0.25} max={8} step={0.25}
                 value={formData.cpu_limit}
                 onChange={e => setFormData({ ...formData, cpu_limit: parseFloat(e.target.value) })}
-                required 
+                required
               />
             </div>
-            <div className="space-y-2">
-              <Label>RAM (MB)</Label>
-              <Input 
-                type="number" 
+            <div className="space-y-1.5">
+              <Label htmlFor="ram">RAM (MB)</Label>
+              <Input
+                id="ram"
+                type="number"
                 min={128} max={16384} step={128}
                 value={formData.ram_limit}
                 onChange={e => setFormData({ ...formData, ram_limit: parseInt(e.target.value) })}
-                required 
+                required
               />
             </div>
-            <div className="space-y-2">
-              <Label>Storage (GB)</Label>
-              <Input 
-                type="number" 
+            <div className="space-y-1.5">
+              <Label htmlFor="storage">Storage (GB)</Label>
+              <Input
+                id="storage"
+                type="number"
                 min={1} max={100}
                 value={formData.storage_limit}
                 onChange={e => setFormData({ ...formData, storage_limit: parseInt(e.target.value) })}
-                required 
+                required
               />
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4 border-t border-border mt-4">
-            <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-2 pt-2 border-t border-border">
+            <Button variant="ghost" type="button" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Deploying..." : "Deploy"}
+            <Button type="submit" disabled={loading || templates.length === 0}>
+              {loading
+                ? <><span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />Deploying…</>
+                : "Deploy"
+              }
             </Button>
           </div>
         </form>
