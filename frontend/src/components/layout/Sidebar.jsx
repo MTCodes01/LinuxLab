@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import {
   LayoutDashboard, Box, BookTemplate, Activity,
-  Users, FileText, LogOut, Terminal, ChevronLeft, ChevronRight,
+  Users, FileText, LogOut, Terminal, ChevronLeft, ChevronRight, Settings
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/templates', icon: BookTemplate, label: 'Templates' },
   { to: '/sessions', icon: Users, label: 'Sessions' },
   { to: '/logs', icon: FileText, label: 'Activity Logs' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function Sidebar() {
@@ -21,17 +22,20 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen bg-surface-900/90 backdrop-blur-md z-40 flex flex-col transition-all duration-300 border-r-2 border-primary ${
-        collapsed ? 'w-[72px]' : 'w-[240px]'
+      className={`fixed left-4 top-4 bottom-4 glass flex flex-col z-40 transition-all duration-300 ${
+        collapsed ? 'w-[72px]' : 'w-[260px]'
       }`}
+      style={{
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.5)',
+      }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b-2 border-primary">
-        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
-          <Terminal className="w-5 h-5 text-white" />
+      <div className="flex items-center gap-3 px-4 h-16 border-b border-border mx-2">
+        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+          <Terminal className="w-4 h-4 text-white" />
         </div>
         {!collapsed && (
-          <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent-light bg-clip-text text-transparent animate-fade-in">
+          <span className="text-base font-semibold text-text-primary animate-fade-in">
             LinuxLab
           </span>
         )}
@@ -45,36 +49,33 @@ export default function Sidebar() {
             <NavLink
               key={to}
               to={to}
-              className={`flex items-center gap-3 px-3 py-2.5 font-mono text-sm uppercase tracking-wider font-bold transition-all group ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-default ${
                 isActive
-                  ? 'text-primary bg-primary/10 border-l-4 border-primary'
-                  : 'text-text-secondary hover:text-primary hover:bg-surface-800 border-l-4 border-transparent'
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface/50'
               }`}
             >
-              <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-primary' : 'group-hover:text-text-primary'}`} />
+              <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-primary' : 'text-text-muted group-hover:text-text-primary'}`} />
               {!collapsed && <span>{label}</span>}
-              {isActive && !collapsed && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
-              )}
             </NavLink>
           );
         })}
       </nav>
 
       {/* Collapse toggle + logout */}
-      <div className="p-3 border-t-2 border-primary space-y-1">
+      <div className="p-3 border-t border-border mx-2 space-y-1">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-text-primary transition-default w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-text-primary hover:bg-surface/50 transition-default w-full"
         >
-          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           {!collapsed && <span>Collapse</span>}
         </button>
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-danger transition-default w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-danger hover:bg-danger/10 transition-default w-full"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-4 h-4" />
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>

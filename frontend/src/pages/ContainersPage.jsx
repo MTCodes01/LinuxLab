@@ -27,6 +27,11 @@ export default function ContainersPage() {
 
   useEffect(() => {
     fetchContainers();
+    // Check if we need to open the create modal from URL
+    if (window.location.search.includes('create=true')) {
+      setShowCreate(true);
+      window.history.replaceState({}, '', '/containers');
+    }
     const interval = setInterval(fetchContainers, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -61,25 +66,17 @@ export default function ContainersPage() {
   return (
     <DashboardLayout title="Containers">
       {/* Header with stats and actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-4">
-          {/* Filter pills */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-2 p-1 bg-surface border border-border rounded-xl">
           {['all', 'running', 'stopped'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-default ${
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-default ${
                 filter === f
-                  ? 'text-primary'
+                  ? 'bg-card shadow-sm text-text-primary'
                   : 'text-text-secondary hover:text-text-primary'
               }`}
-              style={filter === f ? {
-                background: 'rgba(6, 182, 212, 0.1)',
-                border: '1px solid rgba(6, 182, 212, 0.2)',
-              } : {
-                background: 'var(--color-glass-bg)',
-                border: '1px solid var(--color-glass-border)',
-              }}
             >
               {f === 'all' ? `All (${stats.total})` :
                f === 'running' ? `Running (${stats.running})` :
@@ -88,51 +85,50 @@ export default function ContainersPage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
           {/* Search */}
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Filter containers..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 w-48 transition-default"
-              style={{ background: 'var(--color-surface-700)', border: '1px solid var(--color-glass-border)', color: 'var(--color-text-primary)' }}
+              className="pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary w-full sm:w-64 transition-default text-text-primary"
             />
           </div>
 
           {/* Create button */}
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-primary hover:brightness-110 transition-default"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-default shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            New Container
+            <span className="hidden sm:inline">New Container</span>
           </button>
         </div>
       </div>
 
       {/* Container grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-32">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 animate-fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-primary mx-auto mb-4 flex items-center justify-center opacity-50">
-            <Filter className="w-8 h-8 text-white" />
+        <div className="flex flex-col items-center justify-center py-32 animate-fade-in border border-dashed border-border rounded-2xl bg-surface/30">
+          <div className="w-16 h-16 rounded-2xl bg-surface border border-border mx-auto mb-4 flex items-center justify-center text-text-muted">
+            <Filter className="w-6 h-6" />
           </div>
-          <p className="text-text-secondary text-lg mb-2">
+          <p className="text-text-primary font-medium text-lg mb-1">
             {containers.length === 0 ? 'No containers yet' : 'No matching containers'}
           </p>
-          <p className="text-text-muted text-sm mb-6">
-            {containers.length === 0 ? 'Create your first Linux environment' : 'Try adjusting your filters'}
+          <p className="text-text-secondary text-sm mb-6">
+            {containers.length === 0 ? 'Create your first Linux environment to get started.' : 'Try adjusting your search filters.'}
           </p>
           {containers.length === 0 && (
             <button
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-primary hover:brightness-110 transition-default"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-default shadow-sm"
             >
               <Plus className="w-4 h-4" />
               Create Container
@@ -140,7 +136,7 @@ export default function ContainersPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map((container, i) => (
             <ContainerCard
               key={container.id}

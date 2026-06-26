@@ -1,13 +1,15 @@
 import { useAuth } from '../../auth/AuthContext';
-import { Search, Bell, User } from 'lucide-react';
+import { Search, Bell, User, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function TopBar({ title }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 bg-surface-900/90 backdrop-blur-md border-b-2 border-primary relative z-20">
+    <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-8 bg-background/80 backdrop-blur-md border-b border-border">
       {/* Title */}
-      <h1 className="text-xl font-heading font-bold text-text-primary uppercase tracking-wide">{title}</h1>
+      <h1 className="text-2xl font-bold text-text-primary tracking-tight">{title}</h1>
 
       {/* Right side */}
       <div className="flex items-center gap-4">
@@ -17,24 +19,32 @@ export default function TopBar({ title }) {
           <input
             type="text"
             placeholder="Search containers..."
-            className="pl-10 pr-4 py-2 bg-surface-800 border-2 border-surface-700 focus:border-primary text-sm focus:outline-none w-64 transition-all text-text-primary font-mono placeholder:text-text-muted"
+            className="pl-9 pr-4 py-2 bg-surface border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-sm focus:outline-none w-64 transition-default text-text-primary placeholder:text-text-muted"
           />
         </div>
 
+        {/* Create Container Quick Action */}
+        <button
+          onClick={() => navigate('/containers?create=true')}
+          className="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-default shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">New Container</span>
+        </button>
+
         {/* Notifications */}
-        <button className="relative p-2 bg-surface-800 border-2 border-surface-700 hover:border-primary transition-all">
-          <Bell className="w-5 h-5 text-text-secondary" />
-          <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse-glow" />
+        <button className="relative p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface transition-default">
+          <Bell className="w-5 h-5" />
+          <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
         </button>
 
         {/* User avatar */}
-        <div className="flex items-center gap-3 pl-4 border-l-2 border-surface-700">
-          <div className="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center">
-            <User className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-3 pl-4 border-l border-border ml-2">
+          <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center overflow-hidden">
+            <User className="w-4 h-4 text-text-secondary" />
           </div>
           <div className="hidden sm:block">
             <p className="text-sm font-medium text-text-primary">{user?.username || 'Admin'}</p>
-            <p className="text-xs text-text-muted">Administrator</p>
           </div>
         </div>
       </div>
