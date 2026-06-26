@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { sessionsAPI } from '../api/client';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Users, Monitor, Wifi, Clock } from 'lucide-react';
+import { Users, Monitor, Wifi, Clock, Terminal, Search, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function SessionsPage() {
   const [sessions, setSessions] = useState([]);
@@ -10,88 +11,180 @@ export default function SessionsPage() {
   const [active, setActive] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeOnly, setActiveOnly] = useState(false);
+  const [search, setSearch] = useState('');
+  const navigate = useNavigate();
 
-  useEffect(() => {
+  const fetchSessions = () => {
     sessionsAPI.list({ limit: 100, active_only: activeOnly })
       .then(({ data }) => {
-        setSessions(data.sessions);
-        setTotal(data.total);
-        setActive(data.active);
+        setSessions(data.sessions || []);
+        setTotal(data.total || 0);
+        setActive(data.active || 0);
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchSessions();
   }, [activeOnly]);
+
+  const filteredSessions = sessions.filter(s => {
+    const term = search.toLowerCase();
+    const username = (s.username || 'admin').toLowerCase();
+    const container = `container #${s.container_id}`.toLowerCase();
+    const ip = (s.ip_address || '').toLowerCase();
+    return username.includes(term) || container.includes(term) || ip.includes(term);
+  });
 
   return (
     <DashboardLayout title="Sessions">
-      {/* Stats */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="glass px-4 py-2 flex items-center gap-2">
-          <Users className="w-4 h-4 text-primary" />
-          <span className="text-sm text-text-secondary">Total: <span className="font-semibold text-text-primary">{total}</span></span>
+      
+      {/* Action Header / Filter Panel */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        
+        {/* Toggle and Counts */}
+        <div className="flex items-center gap-3">
+          <div className="bg-card border border-border px-3.5 py-1.5 rounded-lg flex items-center gap-2">
+            <Users className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs text-text-secondary">
+              Total: <span className="font-semibold text-text-primary font-tech">{total}</span>
+            </span>
+          </div>
+          <div className="bg-card border border-border px-3.5 py-1.5 rounded-lg flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+            <span className="text-xs text-text-secondary">
+              Active: <span className="font-semibold text-text-primary font-tech">{active}</span>
+            </span>
+          </div>
+
+          <button
+            onClick={() => setActiveOnly(!activeOnly)}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-default cursor-pointer ${
+              activeOnly 
+                ? 'bg-primary/10 text-primary border-primary/20 shadow-sm' 
+                : 'bg-card text-text-secondary border-border hover:text-text-primary hover:border-border-hover'
+            }`}
+          >
+            {activeOnly ? 'Showing Active' : 'Show All'}
+          </button>
         </div>
-        <div className="glass px-4 py-2 flex items-center gap-2">
-          <div className="status-running" />
-          <span className="text-sm text-text-secondary">Active: <span className="font-semibold text-accent">{active}</span></span>
+
+        {/* Search */}
+        <div className="relative w-full sm:w-60">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
+          <input
+            type="text"
+            placeholder="Search sessions..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-4 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary w-full transition-default text-text-primary"
+          />
         </div>
-        <button
-          onClick={() => setActiveOnly(!activeOnly)}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-default ${
-            activeOnly ? 'text-primary' : 'text-text-secondary'
-          }`}
-          style={activeOnly ? {
-            background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)'
-          } : {
-            background: 'var(--color-glass-bg)', border: '1px solid var(--color-glass-border)'
-          }}
-        >
-          {activeOnly ? 'Showing Active Only' : 'Show All'}
-        </button>
       </div>
 
-      {/* Sessions table */}
-      <div className="glass overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ background: 'var(--color-surface-700)' }}>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Type</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Container</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">IP Address</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Started</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Duration</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={6} className="text-center py-8 text-text-muted">Loading...</td></tr>
-            ) : sessions.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-8 text-text-muted">No sessions found</td></tr>
-            ) : sessions.map((session) => (
-              <tr key={session.id} className="border-t transition-default hover:bg-surface-700/30" style={{ borderColor: 'var(--color-glass-border)' }}>
-                <td className="px-4 py-3">
-                  <div className={session.ended_at ? 'status-stopped' : 'status-running'} />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1.5">
-                    {session.session_type === 'terminal' ? <Monitor className="w-3.5 h-3.5 text-primary" /> : <Wifi className="w-3.5 h-3.5 text-accent" />}
-                    <span className="capitalize text-text-primary">{session.session_type}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-text-primary font-mono text-xs">#{session.container_id}</td>
-                <td className="px-4 py-3 text-text-muted font-mono text-xs">{session.ip_address || '—'}</td>
-                <td className="px-4 py-3 text-text-muted text-xs">{format(new Date(session.started_at), 'MMM d, HH:mm')}</td>
-                <td className="px-4 py-3 text-text-muted text-xs">
-                  {session.ended_at
-                    ? formatDistanceToNow(new Date(session.started_at))
-                    : <span className="text-accent">Active</span>
-                  }
-                </td>
+      {/* Sessions Table Container */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr className="bg-surface/30 border-b border-border text-text-muted">
+                <th className="py-3 px-5 font-semibold">Status</th>
+                <th className="py-3 px-5 font-semibold">User</th>
+                <th className="py-3 px-5 font-semibold">Container ID</th>
+                <th className="py-3 px-5 font-semibold">IP Address</th>
+                <th className="py-3 px-5 font-semibold">Session Type</th>
+                <th className="py-3 px-5 font-semibold">Duration / Started</th>
+                <th className="py-3 px-5 font-semibold text-right">Connect</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-text-muted">
+                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                  </td>
+                </tr>
+              ) : filteredSessions.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-text-muted">
+                    No active sessions found
+                  </td>
+                </tr>
+              ) : (
+                filteredSessions.map((session) => {
+                  const isActive = !session.ended_at;
+                  return (
+                    <tr key={session.id} className="border-b border-border/50 hover:bg-surface/20 transition-default group">
+                      {/* Status indicator */}
+                      <td className="py-3.5 px-5">
+                        <span className={`status-badge ${isActive ? 'status-running' : 'status-stopped'}`}>
+                          <span className="w-1 h-1 rounded-full bg-current" />
+                          <span className="text-[10px] font-semibold">{isActive ? 'Active' : 'Ended'}</span>
+                        </span>
+                      </td>
+
+                      {/* User */}
+                      <td className="py-3.5 px-5 font-medium text-text-primary">
+                        {session.username || 'admin'}
+                      </td>
+
+                      {/* Container */}
+                      <td className="py-3.5 px-5 text-text-secondary font-mono">
+                        #{session.container_id}
+                      </td>
+
+                      {/* IP */}
+                      <td className="py-3.5 px-5 text-text-muted font-tech">
+                        {session.ip_address || '—'}
+                      </td>
+
+                      {/* Type */}
+                      <td className="py-3.5 px-5">
+                        <div className="flex items-center gap-1.5 text-text-secondary">
+                          {session.session_type === 'terminal' ? (
+                            <Monitor className="w-3.5 h-3.5 text-primary" />
+                          ) : (
+                            <Wifi className="w-3.5 h-3.5 text-accent" />
+                          )}
+                          <span className="capitalize">{session.session_type}</span>
+                        </div>
+                      </td>
+
+                      {/* Duration */}
+                      <td className="py-3.5 px-5 text-text-muted">
+                        <div>
+                          {isActive ? (
+                            <span className="text-accent font-medium">Active</span>
+                          ) : (
+                            <span>Ended</span>
+                          )}
+                          <span className="text-text-muted/60 mx-1.5">•</span>
+                          <span>{format(new Date(session.started_at), 'MMM d, HH:mm')}</span>
+                        </div>
+                      </td>
+
+                      {/* Action */}
+                      <td className="py-3.5 px-5 text-right">
+                        <button
+                          onClick={() => navigate(`/terminal/${session.container_id}`)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface hover:bg-card border border-border hover:border-primary/50 text-text-secondary hover:text-text-primary rounded text-[10px] font-medium transition-default cursor-pointer"
+                          title="Open Console"
+                        >
+                          <Terminal className="w-3 h-3 text-primary" />
+                          <span>Console</span>
+                          <ChevronRight className="w-3 h-3 text-text-muted" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
     </DashboardLayout>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { containersAPI, templatesAPI } from '../../api/client';
-import { X, ChevronRight, ChevronLeft, Terminal, Cpu, MemoryStick, HardDrive } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Terminal, Cpu, MemoryStick, HardDrive, Shield } from 'lucide-react';
 
 const STEPS = ['Details', 'Template', 'Resources', 'Options'];
 
@@ -23,7 +23,7 @@ export default function CreateContainerModal({ onClose, onCreated }) {
   });
 
   useEffect(() => {
-    templatesAPI.list().then(({ data }) => setTemplates(data)).catch(() => {});
+    templatesAPI.list().then(({ data }) => setTemplates(data || [])).catch(() => {});
   }, []);
 
   const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
@@ -46,184 +46,209 @@ export default function CreateContainerModal({ onClose, onCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-      <div
-        className="relative glass glow-primary w-full max-w-lg animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Overlay backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      
+      {/* Modal Container */}
+      <div className="relative bg-card border border-border w-full max-w-lg rounded-xl overflow-hidden shadow-lg animate-slide-up z-10">
+        
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--color-glass-border)' }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface/20">
           <div>
-            <h2 className="text-lg font-semibold text-text-primary">Create Container</h2>
-            <p className="text-sm text-text-muted mt-0.5">Step {step + 1} of {STEPS.length}: {STEPS[step]}</p>
+            <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider">Create Container</h2>
+            <p className="text-[10px] text-text-muted mt-0.5">Step {step + 1} of {STEPS.length}: {STEPS[step]}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-surface-700 transition-default">
-            <X className="w-5 h-5 text-text-secondary" />
+          <button 
+            onClick={onClose} 
+            className="p-1 rounded hover:bg-surface text-text-secondary hover:text-text-primary transition-default cursor-pointer"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Progress bar */}
-        <div className="h-1" style={{ background: 'var(--color-surface-700)' }}>
+        {/* Progress indicator */}
+        <div className="h-1 bg-surface border-b border-border">
           <div
-            className="h-full transition-all duration-300"
-            style={{ width: `${((step + 1) / STEPS.length) * 100}%`, background: 'var(--color-primary)' }}
+            className="h-full bg-primary transition-all duration-300"
+            style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
         </div>
 
-        {/* Body */}
-        <div className="p-5 min-h-[280px]">
+        {/* Form Body */}
+        <div className="p-5 min-h-[260px]">
           {error && (
-            <div className="p-3 mb-4 rounded-xl text-sm" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--color-danger-light)' }}>
+            <div className="p-3 mb-4 bg-danger/10 border border-danger/15 rounded-lg text-xs text-danger">
               {error}
             </div>
           )}
 
           {step === 0 && (
             <div className="space-y-4 animate-fade-in">
-              <FormInput label="Container Name" value={form.name} onChange={v => updateForm('name', v)} placeholder="my-ubuntu" pattern="^[a-zA-Z0-9_-]+$" />
-              <FormInput label="Linux Username" value={form.username} onChange={v => updateForm('username', v)} placeholder="rahul" pattern="^[a-z_][a-z0-9_-]*$" />
-              <FormInput label="Password" value={form.password} onChange={v => updateForm('password', v)} placeholder="••••••••" type="password" />
+              <FormInput 
+                label="Container Name" 
+                value={form.name} 
+                onChange={v => updateForm('name', v.replace(/[^a-zA-Z0-9_-]/g, ''))} 
+                placeholder="my-ubuntu-box" 
+              />
+              <FormInput 
+                label="Linux Username" 
+                value={form.username} 
+                onChange={v => updateForm('username', v.replace(/[^a-z_][a-z0-9_-]*/g, ''))} 
+                placeholder="developer" 
+              />
+              <FormInput 
+                label="Password" 
+                value={form.password} 
+                onChange={v => updateForm('password', v)} 
+                placeholder="••••••••" 
+                type="password" 
+              />
             </div>
           )}
 
           {step === 1 && (
-            <div className="grid grid-cols-2 gap-3 animate-fade-in">
+            <div className="grid grid-cols-2 gap-3 animate-fade-in overflow-y-auto max-h-[300px] pr-1">
               {templates.map((t) => (
                 <button
                   key={t.id}
+                  type="button"
                   onClick={() => {
                     updateForm('distro', t.distro);
                     updateForm('cpu_limit', t.default_cpu);
                     updateForm('ram_limit', t.default_ram);
                     updateForm('storage_limit', t.default_storage);
                   }}
-                  className={`p-4 rounded-xl text-left transition-default ${
-                    form.distro === t.distro ? 'ring-2 ring-primary' : ''
+                  className={`p-3.5 rounded-lg text-left border transition-default cursor-pointer ${
+                    form.distro === t.distro 
+                      ? 'bg-primary/10 border-primary' 
+                      : 'bg-surface border-border hover:border-border-hover'
                   }`}
-                  style={{
-                    background: form.distro === t.distro ? 'rgba(6,182,212,0.1)' : 'var(--color-surface-700)',
-                    border: `1px solid ${form.distro === t.distro ? 'rgba(6,182,212,0.3)' : 'var(--color-glass-border)'}`,
-                  }}
                 >
-                  <span className="text-2xl">{t.icon}</span>
-                  <p className="text-sm font-medium text-text-primary mt-2">{t.name}</p>
-                  <p className="text-xs text-text-muted mt-1 line-clamp-2">{t.description}</p>
+                  <span className="text-xl font-tech">{t.icon || '🐧'}</span>
+                  <p className="text-xs font-semibold text-text-primary mt-2">{t.name}</p>
+                  <p className="text-[10px] text-text-muted mt-1 line-clamp-2 leading-relaxed">{t.description}</p>
                 </button>
               ))}
             </div>
           )}
 
           {step === 2 && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-5 animate-fade-in">
               <SliderInput icon={Cpu} label="CPU Cores" value={form.cpu_limit} min={0.25} max={8} step={0.25} unit=" cores" onChange={v => updateForm('cpu_limit', v)} />
-              <SliderInput icon={MemoryStick} label="RAM" value={form.ram_limit} min={128} max={8192} step={128} unit=" MB" onChange={v => updateForm('ram_limit', v)} />
-              <SliderInput icon={HardDrive} label="Storage" value={form.storage_limit} min={1} max={50} step={1} unit=" GB" onChange={v => updateForm('storage_limit', v)} />
+              <SliderInput icon={MemoryStick} label="RAM Allocation" value={form.ram_limit} min={128} max={8192} step={128} unit=" MB" onChange={v => updateForm('ram_limit', v)} />
+              <SliderInput icon={HardDrive} label="Disk Storage" value={form.storage_limit} min={1} max={50} step={1} unit=" GB" onChange={v => updateForm('storage_limit', v)} />
             </div>
           )}
 
           {step === 3 && (
             <div className="space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'var(--color-surface-700)', border: '1px solid var(--color-glass-border)' }}>
+              {/* SSH Switch */}
+              <div className="flex items-center justify-between p-3.5 bg-surface border border-border rounded-lg">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">Enable SSH Access</p>
-                  <p className="text-xs text-text-muted mt-0.5">Allow SSH connections to this container</p>
+                  <p className="text-xs font-semibold text-text-primary">Enable SSH Daemon Access</p>
+                  <p className="text-[10px] text-text-muted mt-0.5">Allows remote connections through port 22</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => updateForm('ssh_enabled', !form.ssh_enabled)}
-                  className="w-11 h-6 rounded-full transition-default relative"
-                  style={{ background: form.ssh_enabled ? 'var(--color-primary)' : 'var(--color-surface-500)' }}
+                  className="w-9 h-5 rounded-full transition-default relative border border-border cursor-pointer"
+                  style={{ background: form.ssh_enabled ? 'var(--color-primary)' : 'var(--color-surface)' }}
                 >
-                  <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200"
-                       style={{ left: form.ssh_enabled ? '22px' : '2px' }} />
+                  <div 
+                    className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all duration-200"
+                    style={{ left: form.ssh_enabled ? '17px' : '2px' }} 
+                  />
                 </button>
               </div>
 
-              <div className="p-4 rounded-xl" style={{ background: 'var(--color-surface-700)', border: '1px solid var(--color-glass-border)' }}>
-                <p className="text-sm font-medium text-text-primary mb-2">Container Lifetime</p>
-                <p className="text-xs text-text-muted mb-3">Auto-delete after N hours (leave empty for permanent)</p>
+              {/* Lifetime Limit */}
+              <div className="p-3.5 bg-surface border border-border rounded-lg">
+                <p className="text-xs font-semibold text-text-primary mb-1">Container Expiration</p>
+                <p className="text-[10px] text-text-muted mb-2.5">Auto-destruct container after N hours (leave empty for permanent)</p>
                 <input
                   type="number"
                   value={form.lifetime_hours || ''}
                   onChange={(e) => updateForm('lifetime_hours', e.target.value ? parseInt(e.target.value) : null)}
-                  placeholder="No limit"
+                  placeholder="Permanent"
                   min={1}
                   max={8760}
-                  className="w-full px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  style={{ background: 'var(--color-surface-600)', border: '1px solid var(--color-glass-border)', color: 'var(--color-text-primary)' }}
+                  className="w-full px-3 py-1.5 bg-card border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary text-text-primary font-tech"
                 />
               </div>
 
-              {/* Summary */}
-              <div className="p-4 rounded-xl" style={{ background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.1)' }}>
-                <p className="text-sm font-semibold text-primary mb-2">Summary</p>
-                <div className="grid grid-cols-2 gap-2 text-xs text-text-secondary">
-                  <span>Name:</span><span className="text-text-primary">{form.name}</span>
-                  <span>User:</span><span className="text-text-primary">{form.username}</span>
-                  <span>Distro:</span><span className="text-text-primary">{form.distro}</span>
-                  <span>CPU:</span><span className="text-text-primary">{form.cpu_limit} cores</span>
-                  <span>RAM:</span><span className="text-text-primary">{form.ram_limit} MB</span>
-                  <span>Storage:</span><span className="text-text-primary">{form.storage_limit} GB</span>
-                  <span>SSH:</span><span className="text-text-primary">{form.ssh_enabled ? 'Enabled' : 'Disabled'}</span>
+              {/* Deployment Summary */}
+              <div className="p-3.5 bg-primary/5 border border-primary/10 rounded-lg">
+                <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-2">Sandbox Configuration Summary</p>
+                <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[10px] text-text-secondary font-mono">
+                  <span className="text-text-muted">Target Hostname:</span><span className="text-text-primary font-semibold">{form.name}</span>
+                  <span className="text-text-muted">Default Username:</span><span className="text-text-primary font-semibold">{form.username}</span>
+                  <span className="text-text-muted">Linux Image:</span><span className="text-text-primary font-semibold">{form.distro}</span>
+                  <span className="text-text-muted">CPU Allocated:</span><span className="text-text-primary font-semibold">{form.cpu_limit} Cores</span>
+                  <span className="text-text-muted">RAM Allocated:</span><span className="text-text-primary font-semibold">{form.ram_limit} MB</span>
+                  <span className="text-text-muted">Storage Mapped:</span><span className="text-text-primary font-semibold">{form.storage_limit} GB</span>
+                  <span className="text-text-muted">SSH Status:</span><span className="text-text-primary font-semibold">{form.ssh_enabled ? 'Enabled' : 'Disabled'}</span>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between p-5 border-t" style={{ borderColor: 'var(--color-glass-border)' }}>
+        {/* Footer Navigation */}
+        <div className="flex items-center justify-between px-5 py-4 border-t border-border bg-surface/20">
           <button
+            type="button"
             onClick={() => step > 0 ? setStep(step - 1) : onClose()}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-text-secondary hover:text-text-primary transition-default"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface border border-transparent hover:border-border transition-default cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4" />
-            {step > 0 ? 'Back' : 'Cancel'}
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span>{step > 0 ? 'Back' : 'Cancel'}</span>
           </button>
 
           {step < STEPS.length - 1 ? (
             <button
+              type="button"
               onClick={() => setStep(step + 1)}
               disabled={!canNext()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-primary hover:brightness-110 transition-default disabled:opacity-50"
+              className="flex items-center gap-1 px-4 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg border border-primary/20 transition-default disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
             >
-              Next
-              <ChevronRight className="w-4 h-4" />
+              <span>Next</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           ) : (
             <button
+              type="button"
               onClick={handleCreate}
               disabled={loading || !canNext()}
-              className="flex items-center gap-1.5 px-6 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-primary hover:brightness-110 transition-default disabled:opacity-50"
+              className="flex items-center gap-1.5 px-5 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg border border-primary/20 transition-default disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <Terminal className="w-4 h-4" />
-                  Create Container
+                  <Terminal className="w-3.5 h-3.5" />
+                  <span>Provision Environment</span>
                 </>
               )}
             </button>
           )}
         </div>
+
       </div>
     </div>
   );
 }
 
-function FormInput({ label, value, onChange, placeholder, type = 'text', pattern }) {
+function FormInput({ label, value, onChange, placeholder, type = 'text' }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-text-secondary mb-2">{label}</label>
+      <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1.5">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        pattern={pattern}
-        className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-default"
-        style={{ background: 'var(--color-surface-700)', border: '1px solid var(--color-glass-border)', color: 'var(--color-text-primary)' }}
+        className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-text-primary transition-default placeholder:text-text-muted"
         required
       />
     </div>
@@ -233,12 +258,12 @@ function FormInput({ label, value, onChange, placeholder, type = 'text', pattern
 function SliderInput({ icon: Icon, label, value, min, max, step, unit, onChange }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-text-muted" />
-          <span className="text-sm font-medium text-text-secondary">{label}</span>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <Icon className="w-3.5 h-3.5 text-text-muted" />
+          <span className="text-xs font-medium text-text-secondary">{label}</span>
         </div>
-        <span className="text-sm font-semibold text-primary">{value}{unit}</span>
+        <span className="text-xs font-bold text-primary font-tech">{value}{unit}</span>
       </div>
       <input
         type="range"
@@ -247,10 +272,9 @@ function SliderInput({ icon: Icon, label, value, min, max, step, unit, onChange 
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-2 rounded-full appearance-none cursor-pointer"
-        style={{ background: `linear-gradient(to right, var(--color-primary) ${((value - min) / (max - min)) * 100}%, var(--color-surface-600) ${((value - min) / (max - min)) * 100}%)` }}
+        className="w-full h-1.5 bg-surface border border-border rounded-lg appearance-none accent-primary cursor-pointer"
       />
-      <div className="flex justify-between text-xs text-text-muted mt-1">
+      <div className="flex justify-between text-[9px] text-text-muted mt-1 font-tech">
         <span>{min}{unit}</span>
         <span>{max}{unit}</span>
       </div>

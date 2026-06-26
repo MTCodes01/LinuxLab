@@ -8,6 +8,7 @@ import TerminalPage from './pages/TerminalPage';
 import TemplatesPage from './pages/TemplatesPage';
 import SessionsPage from './pages/SessionsPage';
 import LogsPage from './pages/LogsPage';
+import SettingsPage from './pages/SettingsPage';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
       <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
       <Route path="/sessions" element={<ProtectedRoute><SessionsPage /></ProtectedRoute>} />
       <Route path="/logs" element={<ProtectedRoute><LogsPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
       {/* Terminal — full screen, still protected */}
       <Route path="/terminal/:containerId" element={<ProtectedRoute><TerminalPage /></ProtectedRoute>} />

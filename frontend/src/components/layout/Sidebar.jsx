@@ -1,10 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import {
-  LayoutDashboard, Box, BookTemplate, Activity,
-  Users, FileText, LogOut, Terminal, ChevronLeft, ChevronRight, Settings
+  LayoutDashboard, Box, BookTemplate, Users, FileText, LogOut, Terminal, Settings
 } from 'lucide-react';
-import { useState } from 'react';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -16,67 +14,53 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
   const { logout } = useAuth();
   const location = useLocation();
 
   return (
-    <aside
-      className={`fixed left-4 top-4 bottom-4 glass flex flex-col z-40 transition-all duration-300 ${
-        collapsed ? 'w-[72px]' : 'w-[260px]'
-      }`}
-    >
+    <aside className="fixed left-0 top-0 bottom-0 w-[260px] bg-background border-r border-border flex flex-col z-40">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-border mx-2">
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shadow-[0_0_15px_rgba(124,58,237,0.15)]">
+      <div className="flex items-center gap-3 px-6 h-16 border-b border-border">
+        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
           <Terminal className="w-4 h-4 text-primary" />
         </div>
-        {!collapsed && (
-          <span className="text-base font-semibold text-text-primary tracking-tight animate-fade-in whitespace-nowrap">
-            LinuxLab
-          </span>
-        )}
+        <span className="text-base font-semibold text-text-primary tracking-tight font-tech">
+          LinuxLab
+        </span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
         {navItems.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
           return (
             <NavLink
               key={to}
               to={to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-default group relative overflow-hidden ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-default group relative ${
                 isActive
-                  ? 'bg-primary/10 text-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-primary/20'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface border border-transparent'
+                  ? 'bg-card text-text-primary border border-border shadow-sm'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-card/50 border border-transparent'
               }`}
             >
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />
               )}
               <Icon className={`w-4 h-4 flex-shrink-0 transition-default ${isActive ? 'text-primary' : 'text-text-muted group-hover:text-text-primary'}`} />
-              {!collapsed && <span className="truncate">{label}</span>}
+              <span className="truncate">{label}</span>
             </NavLink>
           );
         })}
       </nav>
 
       {/* Footer / Logout */}
-      <div className="p-3 border-t border-border mx-2 space-y-1 mb-2">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface transition-default w-full group border border-transparent"
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4 group-hover:text-text-primary" /> : <ChevronLeft className="w-4 h-4 group-hover:text-text-primary" />}
-          {!collapsed && <span>Collapse</span>}
-        </button>
+      <div className="p-4 border-t border-border space-y-1">
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-text-secondary hover:text-danger hover:bg-danger/10 transition-default w-full group border border-transparent hover:border-danger/20"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-text-secondary hover:text-danger hover:bg-danger/10 border border-transparent hover:border-danger/20 transition-default w-full group"
         >
-          <LogOut className="w-4 h-4 group-hover:text-danger" />
-          {!collapsed && <span>Sign Out</span>}
+          <LogOut className="w-4 h-4 text-text-muted group-hover:text-danger transition-default" />
+          <span>Sign Out</span>
         </button>
       </div>
     </aside>

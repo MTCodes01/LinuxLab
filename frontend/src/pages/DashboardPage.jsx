@@ -1,35 +1,34 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { monitoringAPI, containersAPI, logsAPI } from '../api/client';
-import { Box, Cpu, HardDrive, Activity, Play, Square, RotateCcw, Trash2, MoreVertical, Terminal, CheckCircle2, Clock } from 'lucide-react';
+import { 
+  Box, Cpu, HardDrive, Activity, Play, Square, Terminal, Trash2, 
+  Clock, Plus, Shield, Settings, FileText, ChevronRight
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
-function StatCard({ title, value, subtitle, progress, icon: Icon, colorClass, delay }) {
+function StatCard({ title, value, subtitle, progress, icon: Icon, colorClass }) {
   return (
-    <div 
-      className="stat-card p-6 flex flex-col justify-between group relative overflow-hidden animate-slide-up"
-      style={{ animationDelay: `${delay * 50}ms` }}
-    >
-      <div className={`absolute -right-12 -top-12 w-32 h-32 rounded-full blur-3xl opacity-10 transition-opacity duration-500 group-hover:opacity-20 ${colorClass.replace('text-', 'bg-')}`} />
-      
-      <div className="flex justify-between items-start mb-4 relative z-10">
+    <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between shadow-sm hover:border-border-hover transition-default animate-slide-up">
+      <div className="flex justify-between items-start mb-3">
         <div>
-          <p className="text-sm font-medium text-text-secondary mb-1.5">{title}</p>
-          <h3 className="text-3xl font-bold text-text-primary tracking-tight">{value}</h3>
+          <p className="text-xs font-medium text-text-muted mb-1">{title}</p>
+          <h3 className="text-2xl font-bold text-text-primary tracking-tight font-tech">{value}</h3>
         </div>
-        <div className={`p-3 rounded-2xl ${colorClass.replace('text-', 'bg-')}/10 border border-${colorClass.replace('text-', 'border-')}/10 flex items-center justify-center shadow-sm`}>
-          <Icon className={`w-5 h-5 ${colorClass}`} />
+        <div className={`p-2 rounded-lg bg-surface border border-border flex items-center justify-center`}>
+          <Icon className={`w-4 h-4 ${colorClass}`} />
         </div>
       </div>
       
-      <div className="relative z-10">
+      <div>
         {progress !== undefined ? (
-          <div className="w-full bg-surface rounded-full h-1.5 mt-3 overflow-hidden border border-border/50">
-            <div className={`h-1.5 rounded-full ${colorClass.replace('text-', 'bg-')} shadow-[0_0_10px_currentColor]`} style={{ width: `${progress}%` }} />
+          <div className="w-full bg-surface rounded-full h-1 mt-2 overflow-hidden border border-border">
+            <div className={`h-1 rounded-full bg-primary`} style={{ width: `${progress}%` }} />
           </div>
         ) : null}
         {subtitle && (
-          <p className="text-sm text-text-muted mt-3 font-medium flex items-center gap-1.5">
+          <p className="text-xs text-text-muted mt-2 font-medium flex items-center gap-1">
             {subtitle}
           </p>
         )}
@@ -48,8 +47,8 @@ function StatusBadge({ status }) {
   
   return (
     <span className={`status-badge ${styles[status] || 'status-stopped'}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" />
-      <span className="capitalize">{status}</span>
+      <span className="w-1 h-1 rounded-full bg-current" />
+      <span className="capitalize text-[10px] font-semibold">{status}</span>
     </span>
   );
 }
@@ -58,6 +57,7 @@ export default function DashboardPage() {
   const [overview, setOverview] = useState(null);
   const [containers, setContainers] = useState([]);
   const [logs, setLogs] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchData() {
@@ -79,115 +79,159 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const totalCores = 64; // mock total
-  const totalRam = 256 * 1024; // 256GB mock total
+  const totalCores = 64; // mock
+  const totalRam = 256 * 1024; // 256GB mock
+  const totalDisk = 500; // 500GB mock
 
   const cpuProgress = overview?.total_cpu_allocated ? Math.round((overview.total_cpu_allocated / totalCores) * 100) : 0;
   const ramProgress = overview?.total_ram_allocated_mb ? Math.round((overview.total_ram_allocated_mb / totalRam) * 100) : 0;
-  const runningPercent = overview?.total_containers ? Math.round((overview.running_containers / overview.total_containers) * 100) : 0;
+  const runningContainers = overview?.running_containers || 0;
+  const stoppedContainers = (overview?.total_containers || 0) - runningContainers;
+  const diskAllocated = containers.reduce((acc, c) => acc + (c.storage_limit || 10), 0);
+  const diskProgress = Math.round((diskAllocated / totalDisk) * 100);
+
+  const handleAction = async (id, action) => {
+    try {
+      if (action === 'delete') {
+        if (!confirm('Are you sure you want to delete this container?')) return;
+        await containersAPI.delete(id);
+      } else if (action === 'start') {
+        await containersAPI.start(id);
+      } else if (action === 'stop') {
+        await containersAPI.stop(id);
+      }
+      // Re-fetch containers list
+      const { data } = await containersAPI.list();
+      setContainers(data.containers || []);
+    } catch (err) {
+      console.error(`Failed container action ${action}:`, err);
+    }
+  };
 
   return (
     <DashboardLayout title="Dashboard">
       
-      {/* 4 Statistic Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* 5 Statistic Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <StatCard
-          title="Total Containers"
-          value={overview?.total_containers || 0}
-          subtitle={<><span className="text-success text-xs bg-success/10 px-1.5 py-0.5 rounded">+3</span> this week</>}
-          icon={Box}
-          colorClass="text-primary"
-          delay={1}
-        />
-        <StatCard
-          title="Running"
-          value={overview?.running_containers || 0}
-          subtitle={`${runningPercent}% utilization`}
-          progress={runningPercent}
+          title="Running Containers"
+          value={runningContainers}
+          subtitle="Active environments"
           icon={Activity}
           colorClass="text-success"
-          delay={2}
         />
         <StatCard
-          title="CPU Allocated"
+          title="Stopped Containers"
+          value={stoppedContainers}
+          subtitle="Idle environments"
+          icon={Square}
+          colorClass="text-text-secondary"
+        />
+        <StatCard
+          title="CPU Allocation"
           value={`${overview?.total_cpu_allocated || 0} Cores`}
-          subtitle={`${cpuProgress}% of ${totalCores} cores`}
+          subtitle={`${cpuProgress}% of ${totalCores} Cores`}
           progress={cpuProgress}
           icon={Cpu}
-          colorClass="text-warning"
-          delay={3}
+          colorClass="text-primary"
         />
         <StatCard
-          title="RAM Allocated"
+          title="RAM Allocation"
           value={`${Math.round((overview?.total_ram_allocated_mb || 0) / 1024)} GB`}
           subtitle={`${ramProgress}% of 256 GB`}
           progress={ramProgress}
           icon={HardDrive}
           colorClass="text-accent"
-          delay={4}
+        />
+        <StatCard
+          title="Disk Allocation"
+          value={`${diskAllocated} GB`}
+          subtitle={`${diskProgress}% of ${totalDisk} GB`}
+          progress={diskProgress}
+          icon={Box}
+          colorClass="text-warning"
         />
       </div>
 
-      {/* 70/30 Split Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-8">
+      {/* Main Grid: Containers and Activity */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-6">
         
-        {/* Left 70%: Container Overview Table */}
-        <div className="xl:col-span-8 glass flex flex-col overflow-hidden animate-slide-up" style={{ animationDelay: '250ms' }}>
-          <div className="p-6 border-b border-border/50 flex justify-between items-center bg-surface/20">
-            <h3 className="text-lg font-semibold text-text-primary">Container Overview</h3>
-            <button className="text-sm font-medium text-primary hover:text-primary-hover transition-default px-3 py-1.5 rounded-lg hover:bg-primary/10">View All</button>
+        {/* Left 8 Columns: Container Overview Table */}
+        <div className="xl:col-span-8 bg-card border border-border rounded-xl flex flex-col overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-surface/20">
+            <div>
+              <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">Latest Containers</h3>
+              <p className="text-xs text-text-muted mt-0.5">Quick overview of your active deployments</p>
+            </div>
+            <button 
+              onClick={() => navigate('/containers')}
+              className="text-xs font-medium text-primary hover:text-primary-hover transition-default px-2.5 py-1 rounded border border-border hover:bg-card cursor-pointer"
+            >
+              View All
+            </button>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto flex-1">
+            <table className="w-full text-xs text-left border-collapse">
               <thead>
                 <tr className="text-text-muted bg-surface/30 border-b border-border">
-                  <th className="py-4 font-medium px-6">Name & Owner</th>
-                  <th className="py-4 font-medium px-6">Status</th>
-                  <th className="py-4 font-medium px-6 hidden sm:table-cell">CPU</th>
-                  <th className="py-4 font-medium px-6 hidden sm:table-cell">RAM</th>
-                  <th className="py-4 font-medium px-6 hidden md:table-cell">Created</th>
-                  <th className="py-4 font-medium px-6 text-right">Actions</th>
+                  <th className="py-3 px-5 font-semibold">Name & Distro</th>
+                  <th className="py-3 px-5 font-semibold">Status</th>
+                  <th className="py-3 px-5 font-semibold hidden sm:table-cell">Resources</th>
+                  <th className="py-3 px-5 font-semibold hidden md:table-cell">IP Address</th>
+                  <th className="py-3 px-5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {containers.slice(0, 5).map((c) => (
-                  <tr key={c.id} className="border-b border-border/50 hover:bg-surface/30 transition-default group">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center flex-shrink-0 group-hover:border-primary/30 transition-colors">
-                          <Box className="w-4 h-4 text-text-secondary group-hover:text-primary transition-colors" />
+                  <tr key={c.id} className="border-b border-border/50 hover:bg-surface/20 transition-default group">
+                    <td className="py-3 px-5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded bg-surface border border-border flex items-center justify-center flex-shrink-0 group-hover:border-primary/30 transition-colors">
+                          <Box className="w-3.5 h-3.5 text-text-secondary group-hover:text-primary transition-colors" />
                         </div>
                         <div>
                           <div className="font-semibold text-text-primary">{c.name}</div>
-                          <div className="text-xs text-text-muted mt-0.5">{c.username}</div>
+                          <div className="text-[10px] text-text-muted font-mono">{c.distro}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-5">
                       <StatusBadge status={c.status} />
                     </td>
-                    <td className="py-4 px-6 hidden sm:table-cell text-text-secondary">{c.cpu_cores} Cores</td>
-                    <td className="py-4 px-6 hidden sm:table-cell text-text-secondary">{c.ram_mb} MB</td>
-                    <td className="py-4 px-6 hidden md:table-cell text-text-muted text-xs">
-                      {formatDistanceToNow(new Date(c.created_at || Date.now()), { addSuffix: true })}
+                    <td className="py-3 px-5 hidden sm:table-cell text-text-secondary">
+                      <span className="font-tech">{c.cpu_cores} vCPU</span>
+                      <span className="text-text-muted mx-1">•</span>
+                      <span className="font-tech">{c.ram_mb} MB</span>
                     </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="py-3 px-5 hidden md:table-cell text-text-muted font-tech">
+                      {c.ip_address || '—'}
+                    </td>
+                    <td className="py-3 px-5 text-right">
+                      <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         {c.status === 'running' ? (
-                          <button className="p-2 text-text-secondary hover:text-warning hover:bg-surface rounded-lg transition-default" title="Stop">
-                            <Square className="w-4 h-4" />
+                          <button 
+                            onClick={() => handleAction(c.id, 'stop')}
+                            className="p-1 text-text-secondary hover:text-warning hover:bg-card border border-transparent hover:border-border rounded transition-default cursor-pointer" 
+                            title="Stop"
+                          >
+                            <Square className="w-3.5 h-3.5" />
                           </button>
                         ) : (
-                          <button className="p-2 text-text-secondary hover:text-success hover:bg-surface rounded-lg transition-default" title="Start">
-                            <Play className="w-4 h-4" />
+                          <button 
+                            onClick={() => handleAction(c.id, 'start')}
+                            className="p-1 text-text-secondary hover:text-success hover:bg-card border border-transparent hover:border-border rounded transition-default cursor-pointer" 
+                            title="Start"
+                          >
+                            <Play className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        <button className="p-2 text-text-secondary hover:text-primary hover:bg-surface rounded-lg transition-default" title="Console">
-                          <Terminal className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-text-secondary hover:text-danger hover:bg-surface rounded-lg transition-default" title="Delete">
-                          <Trash2 className="w-4 h-4" />
+                        <button 
+                          onClick={() => navigate(`/terminal/${c.id}`)}
+                          className="p-1 text-primary hover:text-primary-hover hover:bg-card border border-transparent hover:border-border rounded transition-default cursor-pointer" 
+                          title="Terminal Console"
+                        >
+                          <Terminal className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -195,10 +239,16 @@ export default function DashboardPage() {
                 ))}
                 {containers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-text-muted">
+                    <td colSpan={5} className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center justify-center">
-                        <Box className="w-8 h-8 mb-3 opacity-20" />
-                        <p>No containers found</p>
+                        <Box className="w-6 h-6 mb-2 text-text-muted opacity-30 animate-pulse" />
+                        <p className="text-xs">No containers deployed yet</p>
+                        <button
+                          onClick={() => navigate('/containers?create=true')}
+                          className="mt-3 text-xs bg-primary hover:bg-primary-hover text-white px-3 py-1.5 rounded-lg border border-primary/20 transition-default cursor-pointer"
+                        >
+                          Deploy New Container
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -208,99 +258,138 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right 30%: Recent Activity */}
-        <div className="xl:col-span-4 glass flex flex-col overflow-hidden animate-slide-up" style={{ animationDelay: '300ms' }}>
-          <div className="p-6 border-b border-border/50 bg-surface/20">
-            <h3 className="text-lg font-semibold text-text-primary">Recent Activity</h3>
+        {/* Right 4 Columns: Recent Activity & Quick Actions */}
+        <div className="xl:col-span-4 flex flex-col gap-6">
+          {/* Quick Actions */}
+          <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+            <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => navigate('/containers?create=true')}
+                className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-surface hover:bg-card hover:border-primary/50 text-left transition-default text-xs text-text-secondary hover:text-text-primary group cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                <span>Create Container</span>
+              </button>
+              <button
+                onClick={() => navigate('/settings?tab=ssh')}
+                className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-surface hover:bg-card hover:border-primary/50 text-left transition-default text-xs text-text-secondary hover:text-text-primary group cursor-pointer"
+              >
+                <Shield className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                <span>Manage SSH Keys</span>
+              </button>
+              <button
+                onClick={() => navigate('/logs')}
+                className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-surface hover:bg-card hover:border-primary/50 text-left transition-default text-xs text-text-secondary hover:text-text-primary group cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                <span>View Activity Logs</span>
+              </button>
+              <button
+                onClick={() => navigate('/settings')}
+                className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-surface hover:bg-card hover:border-primary/50 text-left transition-default text-xs text-text-secondary hover:text-text-primary group cursor-pointer"
+              >
+                <Settings className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                <span>System Settings</span>
+              </button>
+            </div>
           </div>
-          
-          <div className="p-6 flex-1 overflow-y-auto">
-            {logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-text-muted opacity-50">
-                <Activity className="w-8 h-8 mb-2" />
-                <p className="text-sm">No activity yet</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {logs.slice(0, 6).map((log, i) => (
-                  <div key={log.id} className="flex gap-4 relative">
-                    {/* Vertical Line Connector */}
-                    {i !== Math.min(logs.length, 6) - 1 && (
-                      <div className="absolute left-4 top-8 bottom-[-24px] w-px bg-border/60" />
-                    )}
-                    
-                    {/* Icon */}
-                    <div className="relative z-10 w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center flex-shrink-0 shadow-sm">
-                      {log.action.includes('created') ? <CheckCircle2 className="w-4 h-4 text-success" /> :
-                       log.action.includes('started') ? <Play className="w-4 h-4 text-primary" /> :
-                       log.action.includes('stopped') ? <Square className="w-4 h-4 text-warning" /> :
-                       log.action.includes('deleted') ? <Trash2 className="w-4 h-4 text-danger" /> :
-                       <Clock className="w-4 h-4 text-text-muted" />}
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="flex-1 pt-1.5">
-                      <p className="text-sm font-medium text-text-primary leading-none capitalize">
-                        {log.action.replace('_', ' ')}
-                      </p>
-                      {log.container_name && (
-                        <p className="text-xs text-text-secondary mt-1.5 font-medium">{log.container_name}</p>
+
+          {/* Recent Activity Feed */}
+          <div className="bg-card border border-border rounded-xl flex flex-col flex-1 shadow-sm overflow-hidden min-h-[300px]">
+            <div className="px-5 py-4 border-b border-border bg-surface/20">
+              <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">Recent Activity</h3>
+            </div>
+            
+            <div className="p-5 flex-1 overflow-y-auto max-h-[350px]">
+              {logs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full py-12 text-text-muted opacity-40">
+                  <Activity className="w-6 h-6 mb-1.5" />
+                  <p className="text-xs">No recent operations</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {logs.slice(0, 5).map((log, i) => (
+                    <div key={log.id} className="flex gap-3 relative">
+                      {i !== Math.min(logs.length, 5) - 1 && (
+                        <div className="absolute left-3 top-6 bottom-[-16px] w-px bg-border" />
                       )}
-                      <p className="text-xs text-text-muted mt-1.5">
-                        {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
-                      </p>
+                      
+                      <div className="relative z-10 w-6 h-6 rounded-full bg-surface border border-border flex items-center justify-center flex-shrink-0">
+                        <Clock className="w-3 h-3 text-text-secondary" />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <p className="text-xs font-semibold text-text-primary leading-tight capitalize">
+                          {log.action.replace('_', ' ')}
+                        </p>
+                        {log.container_name && (
+                          <p className="text-[10px] text-text-secondary mt-0.5 font-medium">{log.container_name}</p>
+                        )}
+                        <p className="text-[9px] text-text-muted mt-0.5">
+                          {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
       </div>
 
-      {/* Third Section: Resource Usage Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-up" style={{ animationDelay: '350ms' }}>
-        <div className="glass flex flex-col overflow-hidden">
-          <div className="p-6 border-b border-border/50 flex justify-between items-center bg-surface/20">
-            <h3 className="text-base font-semibold text-text-primary">CPU Usage Over Time</h3>
-            <span className="text-xs font-medium text-success bg-success/10 px-2 py-1 rounded-md border border-success/20">Live</span>
-          </div>
-          <div className="h-64 p-6 relative overflow-hidden bg-surface/10">
-            {/* Mock chart area */}
-            <div className="absolute inset-x-6 bottom-6 top-6 flex items-end justify-between gap-1 opacity-80">
-              {[40, 25, 60, 30, 80, 45, 70, 50, 90, 65, 85, 40, 50, 45, 60, 55, 70, 80, 60, 75, 40, 90, 85, 60, 50].map((h, i) => (
-                <div key={i} className="w-full bg-primary/40 rounded-t-sm hover:bg-primary/60 transition-colors relative group" style={{ height: `${h}%` }}>
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-text-primary text-[10px] px-2 py-1 rounded border border-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap shadow-md">
-                    {h}% Usage
-                  </div>
-                </div>
-              ))}
+      {/* Live Resource Usage Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-up">
+        
+        {/* CPU Chart */}
+        <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-surface/20">
+            <div>
+              <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">CPU Allocation Load</h3>
+              <p className="text-[10px] text-text-muted mt-0.5">Real-time CPU core share distribution</p>
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent pointer-events-none" />
+            <span className="text-[9px] font-semibold text-success bg-success/10 border border-success/15 px-2 py-0.5 rounded">Live</span>
+          </div>
+          <div className="h-48 px-5 py-4 relative flex items-end justify-between gap-1 bg-surface/10">
+            {[30, 20, 45, 15, 60, 35, 50, 40, 75, 55, 65, 30, 40, 35, 50, 45, 60, 70, 50, 65, 35, 80, 70, 50, 45].map((h, i) => (
+              <div 
+                key={i} 
+                className="w-full bg-primary/20 hover:bg-primary/50 border-t border-primary/30 transition-colors relative group rounded-t-sm" 
+                style={{ height: `${h}%` }}
+              >
+                <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-card text-text-primary text-[9px] px-1.5 py-0.5 rounded border border-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap shadow-sm">
+                  {h}% load
+                </div>
+              </div>
+            ))}
           </div>
         </div>
         
-        <div className="glass flex flex-col overflow-hidden">
-          <div className="p-6 border-b border-border/50 flex justify-between items-center bg-surface/20">
-            <h3 className="text-base font-semibold text-text-primary">RAM Usage Over Time</h3>
-            <span className="text-xs font-medium text-success bg-success/10 px-2 py-1 rounded-md border border-success/20">Live</span>
-          </div>
-          <div className="h-64 p-6 relative overflow-hidden bg-surface/10">
-            {/* Mock chart line */}
-            <div className="absolute inset-x-6 bottom-6 top-6 opacity-80">
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible">
-                <defs>
-                  <linearGradient id="ramGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.01" />
-                  </linearGradient>
-                </defs>
-                <path d="M0,100 L0,60 Q10,50 20,65 T40,40 T60,55 T80,30 T100,45 L100,100 Z" fill="url(#ramGradient)" />
-                <path d="M0,60 Q10,50 20,65 T40,40 T60,55 T80,30 T100,45" fill="none" stroke="var(--color-accent)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
-              </svg>
+        {/* RAM Chart */}
+        <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-surface/20">
+            <div>
+              <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">Memory Allocation Load</h3>
+              <p className="text-[10px] text-text-muted mt-0.5">Allocated memory capacity utilization</p>
             </div>
+            <span className="text-[9px] font-semibold text-success bg-success/10 border border-success/15 px-2 py-0.5 rounded">Live</span>
+          </div>
+          <div className="h-48 px-5 py-4 relative bg-surface/10">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible opacity-90">
+              <defs>
+                <linearGradient id="ramGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              <path d="M0,100 L0,70 Q15,55 30,75 T60,50 T90,65 L100,55 L100,100 Z" fill="url(#ramGradient)" />
+              <path d="M0,70 Q15,55 30,75 T60,50 T90,65 L100,55" fill="none" stroke="var(--color-primary)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+            </svg>
           </div>
         </div>
+
       </div>
 
     </DashboardLayout>

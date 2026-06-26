@@ -1,9 +1,29 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import ContainerCard from '../components/containers/ContainerCard';
 import CreateContainerModal from '../components/containers/CreateContainerModal';
 import { containersAPI } from '../api/client';
-import { Plus, Search, Filter, Box } from 'lucide-react';
+import { 
+  Plus, Search, Filter, Box, Play, Square, Terminal, Trash2, 
+  RotateCcw, Globe, Copy, Check, ShieldAlert
+} from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+
+function StatusBadge({ status }) {
+  const styles = {
+    running: 'status-running',
+    stopped: 'status-stopped',
+    starting: 'status-starting',
+    error: 'status-error'
+  };
+  
+  return (
+    <span className={`status-badge ${styles[status] || 'status-stopped'}`}>
+      <span className="w-1 h-1 rounded-full bg-current" />
+      <span className="capitalize text-[10px] font-semibold">{status}</span>
+    </span>
+  );
+}
 
 export default function ContainersPage() {
   const [containers, setContainers] = useState([]);
@@ -12,12 +32,19 @@ export default function ContainersPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [stats, setStats] = useState({ total: 0, running: 0, stopped: 0 });
+  const [copyingId, setCopyingId] = useState(null);
+  
+  const navigate = useNavigate();
 
   const fetchContainers = async () => {
     try {
       const { data } = await containersAPI.list();
-      setContainers(data.containers);
-      setStats({ total: data.total, running: data.running, stopped: data.stopped });
+      setContainers(data.containers || []);
+      setStats({ 
+        total: data.total || 0, 
+        running: data.running || 0, 
+        stopped: data.stopped || 0 
+      });
     } catch (err) {
       console.error('Failed to fetch containers:', err);
     } finally {
@@ -56,6 +83,16 @@ export default function ContainersPage() {
     }
   };
 
+  const handleCopySSH = (container) => {
+    const username = container.username || 'root';
+    const ip = container.ip_address || '127.0.0.1';
+    // Port mappings can be configured, default is 22 or a custom mapped SSH port. Let's assume port 22 or mock custom
+    const sshCmd = `ssh ${username}@${ip}`;
+    navigator.clipboard.writeText(sshCmd);
+    setCopyingId(container.id);
+    setTimeout(() => setCopyingId(null), 1500);
+  };
+
   const filtered = containers
     .filter(c => filter === 'all' || c.status === filter)
     .filter(c => c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -64,17 +101,19 @@ export default function ContainersPage() {
 
   return (
     <DashboardLayout title="Containers">
-      {/* Header with stats and actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-1.5 p-1.5 bg-surface/50 backdrop-blur-md border border-border rounded-xl">
+      
+      {/* Filters and Actions header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        {/* Status filters */}
+        <div className="flex items-center gap-1 p-1 bg-surface border border-border rounded-lg">
           {['all', 'running', 'stopped'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-default ${
+              className={`px-3 py-1 rounded text-xs font-semibold transition-default cursor-pointer ${
                 filter === f
-                  ? 'bg-card shadow-sm text-text-primary border border-border/50'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface/50 border border-transparent'
+                  ? 'bg-card text-text-primary border border-border shadow-sm'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-card/50 border border-transparent'
               }`}
             >
               {f === 'all' ? `All (${stats.total})` :
@@ -84,71 +123,200 @@ export default function ContainersPage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-4 w-full sm:w-auto">
-          {/* Search */}
+        {/* Search & Actions */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-none">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
             <input
               type="text"
-              placeholder="Filter containers..."
+              placeholder="Search by name, distro..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-surface/50 hover:bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 w-full sm:w-64 transition-default text-text-primary shadow-sm"
+              className="pl-9 pr-4 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary w-full sm:w-60 transition-default text-text-primary"
             />
           </div>
 
-          {/* Create button */}
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-default shadow-[0_0_15px_rgba(124,58,237,0.2)] border border-primary/20"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-primary hover:bg-primary-hover border border-primary/20 transition-default shadow-sm cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New Container</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Deploy</span>
           </button>
         </div>
       </div>
 
-      {/* Container grid */}
+      {/* Main Containers Table */}
       {loading ? (
-        <div className="flex items-center justify-center py-32">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(124,58,237,0.3)]" />
+        <div className="bg-card border border-border rounded-xl p-16 flex justify-center items-center">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 animate-fade-in border border-dashed border-border rounded-2xl bg-surface/10 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-surface/20" />
-          <div className="w-16 h-16 rounded-2xl bg-surface/50 border border-border mx-auto mb-6 flex items-center justify-center text-text-muted shadow-sm relative z-10">
-            {containers.length === 0 ? <Box className="w-6 h-6" /> : <Filter className="w-6 h-6" />}
+        <div className="bg-card border border-border rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+          <div className="w-12 h-12 rounded-lg bg-surface border border-border flex items-center justify-center text-text-muted mb-4">
+            <Box className="w-5 h-5 opacity-40" />
           </div>
-          <p className="text-text-primary font-medium text-lg mb-2 relative z-10">
-            {containers.length === 0 ? 'No containers yet' : 'No matching containers'}
-          </p>
-          <p className="text-text-secondary text-sm mb-8 relative z-10">
-            {containers.length === 0 ? 'Create your first Linux environment to get started.' : 'Try adjusting your search filters.'}
+          <h3 className="text-sm font-semibold text-text-primary mb-1">
+            {containers.length === 0 ? 'No environments deployed' : 'No matching containers'}
+          </h3>
+          <p className="text-xs text-text-muted max-w-xs mb-6">
+            {containers.length === 0 
+              ? 'Provision your first isolated Linux container in seconds.' 
+              : 'Try clearing your filters or adjusting your search term.'}
           </p>
           {containers.length === 0 && (
             <button
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-default shadow-[0_0_20px_rgba(124,58,237,0.25)] border border-primary/20 relative z-10"
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-default shadow-sm border border-primary/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              Create Container
+              Create Sandbox Container
             </button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((container, i) => (
-            <ContainerCard
-              key={container.id}
-              container={container}
-              onAction={handleAction}
-              delay={i}
-            />
-          ))}
+        <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr className="bg-surface/30 border-b border-border text-text-muted">
+                  <th className="py-3 px-5 font-semibold">Name & Distro</th>
+                  <th className="py-3 px-5 font-semibold">Status</th>
+                  <th className="py-3 px-5 font-semibold">CPU Allocation</th>
+                  <th className="py-3 px-5 font-semibold">RAM Allocation</th>
+                  <th className="py-3 px-5 font-semibold">Uptime</th>
+                  <th className="py-3 px-5 font-semibold">SSH Connection</th>
+                  <th className="py-3 px-5 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((c) => {
+                  const isRunning = c.status === 'running';
+                  const uptimeStr = isRunning && c.created_at
+                    ? `Up ${formatDistanceToNow(new Date(c.created_at), { addSuffix: false })}`
+                    : 'Stopped';
+                  
+                  return (
+                    <tr key={c.id} className="border-b border-border/50 hover:bg-surface/20 transition-default group">
+                      {/* Name and OS */}
+                      <td className="py-3.5 px-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-surface border border-border flex items-center justify-center flex-shrink-0 group-hover:border-primary/40 transition-colors">
+                            <Box className="w-4 h-4 text-text-secondary group-hover:text-primary transition-colors" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-text-primary flex items-center gap-1.5">
+                              {c.name}
+                              <span className="text-[10px] font-medium text-text-muted font-mono bg-surface px-1.5 py-0.5 rounded border border-border">
+                                {c.username}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-text-muted mt-0.5 font-mono">{c.distro}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Status badge */}
+                      <td className="py-3.5 px-5">
+                        <StatusBadge status={c.status} />
+                      </td>
+
+                      {/* CPU cores */}
+                      <td className="py-3.5 px-5 text-text-secondary font-tech">
+                        {c.cpu_cores} Cores
+                      </td>
+
+                      {/* RAM MB */}
+                      <td className="py-3.5 px-5 text-text-secondary font-tech">
+                        {c.ram_mb} MB
+                      </td>
+
+                      {/* Uptime */}
+                      <td className="py-3.5 px-5 text-text-muted">
+                        {uptimeStr}
+                      </td>
+
+                      {/* SSH Address Connection */}
+                      <td className="py-3.5 px-5">
+                        {c.ssh_enabled ? (
+                          <div className="flex items-center gap-2">
+                            <code className="px-2 py-0.5 bg-surface border border-border rounded text-[10px] text-text-secondary font-tech">
+                              {c.ip_address || '—'}
+                            </code>
+                            <button
+                              onClick={() => handleCopySSH(c)}
+                              className="p-1 rounded hover:bg-surface text-text-muted hover:text-text-primary border border-transparent hover:border-border transition-default cursor-pointer"
+                              title="Copy SSH command"
+                            >
+                              {copyingId === c.id ? (
+                                <Check className="w-3 h-3 text-success" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-text-muted italic">Disabled</span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3.5 px-5 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {isRunning ? (
+                            <>
+                              <button
+                                onClick={() => handleAction(c.id, 'stop')}
+                                className="p-1.5 text-text-secondary hover:text-warning hover:bg-surface rounded border border-transparent hover:border-border transition-default cursor-pointer"
+                                title="Stop container"
+                              >
+                                <Square className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleAction(c.id, 'restart')}
+                                className="p-1.5 text-text-secondary hover:text-primary hover:bg-surface rounded border border-transparent hover:border-border transition-default cursor-pointer"
+                                title="Restart container"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => navigate(`/terminal/${c.id}`)}
+                                className="p-1.5 text-primary hover:text-primary-hover hover:bg-surface rounded border border-transparent hover:border-border transition-default cursor-pointer"
+                                title="Launch console terminal"
+                              >
+                                <Terminal className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleAction(c.id, 'start')}
+                              className="p-1.5 text-text-secondary hover:text-success hover:bg-surface rounded border border-transparent hover:border-border transition-default cursor-pointer"
+                              title="Start container"
+                            >
+                              <Play className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <div className="w-px h-3.5 bg-border mx-1" />
+                          <button
+                            onClick={() => handleAction(c.id, 'delete')}
+                            className="p-1.5 text-text-secondary hover:text-danger hover:bg-surface rounded border border-transparent hover:border-border transition-default cursor-pointer"
+                            title="Delete container"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Create Modal */}
+      {/* Deploy Container Modal wrapper */}
       {showCreate && (
         <CreateContainerModal
           onClose={() => setShowCreate(false)}

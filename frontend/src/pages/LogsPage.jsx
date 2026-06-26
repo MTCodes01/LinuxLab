@@ -2,16 +2,16 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { logsAPI } from '../api/client';
 import { formatDistanceToNow, format } from 'date-fns';
-import { FileText, Filter, Download } from 'lucide-react';
+import { FileText, Search, Download, Clock, Info } from 'lucide-react';
 
-const actionColors = {
-  created: 'var(--color-accent)',
-  started: 'var(--color-primary)',
-  stopped: 'var(--color-warning)',
-  deleted: 'var(--color-danger)',
-  reset: 'var(--color-primary-light)',
-  terminal_login: 'var(--color-accent-light)',
-  ssh_login: '#8b5cf6',
+const actionBadgeStyles = {
+  created: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  started: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+  stopped: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  deleted: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+  reset: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+  terminal_login: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+  ssh_login: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
 };
 
 const actionLabels = {
@@ -20,7 +20,7 @@ const actionLabels = {
   stopped: 'Stopped',
   deleted: 'Deleted',
   reset: 'Reset',
-  terminal_login: 'Terminal Login',
+  terminal_login: 'Console Login',
   ssh_login: 'SSH Login',
 };
 
@@ -29,15 +29,16 @@ export default function LogsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState(null);
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const limit = 25;
+  const limit = 15; // clean pagination limit
 
   const fetchLogs = () => {
     setLoading(true);
     logsAPI.list({ limit, offset: page * limit, action: filter })
       .then(({ data }) => {
-        setLogs(data.logs);
-        setTotal(data.total);
+        setLogs(data.logs || []);
+        setTotal(data.total || 0);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -47,7 +48,7 @@ export default function LogsPage() {
     fetchLogs();
   }, [filter, page]);
 
-  // Auto-refresh
+  // Auto-refresh logs
   useEffect(() => {
     const interval = setInterval(fetchLogs, 10000);
     return () => clearInterval(interval);
@@ -56,102 +57,152 @@ export default function LogsPage() {
   const actions = Object.keys(actionLabels);
   const totalPages = Math.ceil(total / limit);
 
+  // Client-side search filtering
+  const filteredLogs = logs.filter(log => {
+    const term = search.toLowerCase();
+    const name = (log.container_name || '').toLowerCase();
+    const details = (log.details || '').toLowerCase();
+    const action = (actionLabels[log.action] || log.action || '').toLowerCase();
+    return name.includes(term) || details.includes(term) || action.includes(term);
+  });
+
   return (
     <DashboardLayout title="Activity Logs">
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <button
-          onClick={() => { setFilter(null); setPage(0); }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-default ${!filter ? 'text-primary' : 'text-text-secondary'}`}
-          style={!filter ? { background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' } : { background: 'var(--color-glass-bg)', border: '1px solid var(--color-glass-border)' }}
-        >
-          All ({total})
-        </button>
-        {actions.map((action) => (
+      
+      {/* Search & Event Filters Row */}
+      <div className="flex flex-col gap-4 mb-6">
+        {/* Search Input */}
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
+          <input
+            type="text"
+            placeholder="Search event logs by container name or details..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary w-full transition-default text-text-primary"
+          />
+        </div>
+
+        {/* Action Badge Filters */}
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-surface border border-border rounded-lg w-fit">
           <button
-            key={action}
-            onClick={() => { setFilter(action); setPage(0); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-default ${filter === action ? 'text-primary' : 'text-text-secondary'}`}
-            style={filter === action ? { background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' } : { background: 'var(--color-glass-bg)', border: '1px solid var(--color-glass-border)' }}
+            onClick={() => { setFilter(null); setPage(0); }}
+            className={`px-3 py-1 rounded text-xs font-semibold transition-default cursor-pointer ${
+              !filter 
+                ? 'bg-card text-text-primary border border-border shadow-sm' 
+                : 'text-text-secondary hover:text-text-primary hover:bg-card/50 border border-transparent'
+            }`}
           >
-            {actionLabels[action]}
+            All Logs ({total})
           </button>
-        ))}
+          {actions.map((act) => (
+            <button
+              key={act}
+              onClick={() => { setFilter(act); setPage(0); }}
+              className={`px-3 py-1 rounded text-xs font-semibold transition-default cursor-pointer ${
+                filter === act 
+                  ? 'bg-card text-text-primary border border-border shadow-sm' 
+                  : 'text-text-secondary hover:text-text-primary hover:bg-card/50 border border-transparent'
+              }`}
+            >
+              {actionLabels[act]}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Logs timeline */}
-      <div className="glass p-5">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="text-center py-8">
-            <FileText className="w-8 h-8 text-text-muted mx-auto mb-2" />
-            <p className="text-sm text-text-muted">No activity logs found</p>
-          </div>
-        ) : (
-          <div className="space-y-0">
-            {logs.map((log, i) => (
-              <div
-                key={log.id}
-                className="flex items-start gap-4 py-3 animate-slide-up"
-                style={{
-                  animationDelay: `${i * 30}ms`,
-                  borderBottom: i < logs.length - 1 ? '1px solid var(--color-glass-border)' : 'none',
-                }}
-              >
-                {/* Timeline dot */}
-                <div className="mt-1.5 flex-shrink-0">
-                  <div className="w-3 h-3 rounded-full" style={{ background: actionColors[log.action] || 'var(--color-text-muted)', boxShadow: `0 0 8px ${actionColors[log.action] || 'transparent'}40` }} />
-                </div>
+      {/* Logs Table Container */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm flex flex-col">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr className="bg-surface/30 border-b border-border text-text-muted">
+                <th className="py-3 px-5 font-semibold">Event Type</th>
+                <th className="py-3 px-5 font-semibold">Container</th>
+                <th className="py-3 px-5 font-semibold">Details</th>
+                <th className="py-3 px-5 font-semibold">Time Elapsed</th>
+                <th className="py-3 px-5 font-semibold text-right">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-12">
+                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                  </td>
+                </tr>
+              ) : filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-12 text-text-muted">
+                    <div className="flex flex-col items-center justify-center">
+                      <FileText className="w-6 h-6 mb-2 text-text-muted opacity-30" />
+                      <p>No activity logs match the criteria</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredLogs.map((log) => {
+                  const badgeStyle = actionBadgeStyles[log.action] || 'bg-zinc-800 text-text-muted border-zinc-700/50';
+                  const label = actionLabels[log.action] || log.action;
+                  
+                  return (
+                    <tr key={log.id} className="border-b border-border/50 hover:bg-surface/20 transition-default">
+                      {/* Badge */}
+                      <td className="py-3 px-5">
+                        <span className={`px-2 py-0.5 rounded border text-[9px] font-semibold tracking-wide uppercase ${badgeStyle}`}>
+                          {label}
+                        </span>
+                      </td>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span
-                      className="px-2 py-0.5 rounded text-xs font-semibold"
-                      style={{ background: `${actionColors[log.action]}15`, color: actionColors[log.action] }}
-                    >
-                      {actionLabels[log.action] || log.action}
-                    </span>
-                    {log.container_name && (
-                      <span className="text-sm text-text-primary font-medium">{log.container_name}</span>
-                    )}
-                  </div>
-                  {log.details && (
-                    <p className="text-xs text-text-muted mt-1">{log.details}</p>
-                  )}
-                </div>
+                      {/* Container */}
+                      <td className="py-3 px-5 font-semibold text-text-primary font-tech">
+                        {log.container_name || '—'}
+                      </td>
 
-                {/* Timestamp */}
-                <div className="flex-shrink-0 text-right">
-                  <p className="text-xs text-text-muted">{format(new Date(log.timestamp), 'HH:mm:ss')}</p>
-                  <p className="text-xs text-text-muted">{formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                      {/* Details */}
+                      <td className="py-3 px-5 text-text-secondary max-w-sm truncate">
+                        {log.details || 'System operation executed.'}
+                      </td>
 
-        {/* Pagination */}
+                      {/* Time Relative */}
+                      <td className="py-3 px-5 text-text-muted">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-text-muted/60" />
+                          <span>{formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}</span>
+                        </div>
+                      </td>
+
+                      {/* Time Absolute */}
+                      <td className="py-3 px-5 text-text-muted text-right font-tech">
+                        {format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss')}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination bar */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4 mt-4 border-t" style={{ borderColor: 'var(--color-glass-border)' }}>
-            <span className="text-xs text-text-muted">Page {page + 1} of {totalPages}</span>
+          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface/10">
+            <span className="text-[11px] text-text-muted">
+              Page <span className="font-semibold text-text-secondary">{page + 1}</span> of <span className="font-semibold text-text-secondary">{totalPages}</span>
+            </span>
+            
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage(Math.max(0, page - 1))}
                 disabled={page === 0}
-                className="px-3 py-1.5 rounded-lg text-xs text-text-secondary hover:text-text-primary transition-default disabled:opacity-50"
-                style={{ background: 'var(--color-glass-bg)', border: '1px solid var(--color-glass-border)' }}
+                className="px-3 py-1.5 bg-surface hover:bg-card border border-border text-text-secondary hover:text-text-primary rounded-lg text-[11px] font-medium transition-default disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 Previous
               </button>
               <button
                 onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
                 disabled={page >= totalPages - 1}
-                className="px-3 py-1.5 rounded-lg text-xs text-text-secondary hover:text-text-primary transition-default disabled:opacity-50"
-                style={{ background: 'var(--color-glass-bg)', border: '1px solid var(--color-glass-border)' }}
+                className="px-3 py-1.5 bg-surface hover:bg-card border border-border text-text-secondary hover:text-text-primary rounded-lg text-[11px] font-medium transition-default disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 Next
               </button>
@@ -159,6 +210,7 @@ export default function LogsPage() {
           </div>
         )}
       </div>
+
     </DashboardLayout>
   );
 }
