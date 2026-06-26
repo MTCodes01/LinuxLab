@@ -3,17 +3,15 @@ import TopBar from './TopBar';
 
 export default function DashboardLayout({ title, children }) {
   return (
-    <div className="min-h-screen bg-background text-text-primary flex">
-      {/* Floating Sidebar (fixed) */}
+    <div className="min-h-screen bg-background text-text-primary flex selection:bg-primary/30">
+      {/* Sidebar fixed positioning */}
       <Sidebar />
       
       {/* Main Content Area */}
-      <div className="flex-1 ml-[284px] min-h-screen flex flex-col transition-default">
-        {/* Sticky TopBar */}
+      <div className="flex-1 ml-[280px] min-h-screen flex flex-col transition-all duration-300">
         <TopBar title={title} />
         
-        {/* Page Content */}
-        <main className="flex-1 p-8 pb-12 max-w-7xl">
+        <main className="flex-1 p-8 pb-12 w-full max-w-7xl mx-auto animate-fade-in">
           {children}
         </main>
       </div>

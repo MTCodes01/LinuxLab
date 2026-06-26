@@ -3,7 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Colors */
+  /* Colors - Modern DevOps SaaS */
   --color-background: #09090B;
   --color-surface: #111113;
   --color-card: rgba(24, 24, 27, 0.85);
@@ -27,12 +27,12 @@
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  /* Shadows */
+  /* Shadows - Soft and Premium */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.3);
-  --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 24px -4px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 12px 32px -4px rgba(0, 0, 0, 0.4);
 }
 
 /* ─── Base Styles ───────────────────────────────────── */
@@ -46,10 +46,11 @@ html {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
 }
 
 body {
-  background: var(--color-background);
+  background-color: var(--color-background);
   color: var(--color-text-primary);
   min-height: 100vh;
   width: 100vw;
@@ -65,12 +66,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
-  border: 1px solid var(--color-border);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ─── Typography Utils ──────────────────────────────── */
@@ -83,11 +83,11 @@ body {
   transition: all 150ms ease-in-out;
 }
 
-/* Card styles for compatibility and modern design */
+/* Glass effect for cards and panels */
 .glass {
   background: var(--color-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--color-border);
   border-radius: 16px;
   box-shadow: var(--shadow-card);
@@ -98,16 +98,6 @@ body {
   border-color: var(--color-border-hover);
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
-}
-
-/* We can alias glass-pill for tiny rounded elements */
-.glass-pill {
-  background: var(--color-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--color-border);
-  border-radius: 9999px;
-  transition: all 150ms ease-in-out;
 }
 
 /* Stat Cards */
@@ -124,13 +114,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Surface backgrounds for layout components */
-.surface-element {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-}
-
 /* ─── Animations ───────────────────────────────────── */
 @keyframes slide-up {
   0% { opacity: 0; transform: translateY(10px); }
@@ -138,7 +121,7 @@ body {
 }
 
 .animate-slide-up {
-  animation: slide-up 0.4s ease-out forwards;
+  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes fade-in {
@@ -159,6 +142,7 @@ body {
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
+  transition: all 150ms ease-in-out;
 }
 
 .status-running {
@@ -184,3 +168,4 @@ body {
   color: var(--color-danger);
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
+

@@ -1,4 +1,4 @@
-import { Play, Square, RotateCcw, Trash2, Terminal, Shield, MoreVertical } from 'lucide-react';
+import { Play, Square, RotateCcw, Trash2, Terminal, Shield, MoreVertical, Box, Cpu, HardDrive, Globe } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,7 +12,7 @@ function StatusBadge({ status }) {
   
   return (
     <span className={`status-badge ${styles[status] || 'status-stopped'}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+      <span className="w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" />
       <span className="capitalize">{status}</span>
     </span>
   );
@@ -27,49 +27,65 @@ export default function ContainerCard({ container, onAction, delay }) {
 
   return (
     <div 
-      className="glass glass-hover p-6 flex flex-col animate-slide-up"
+      className="glass glass-hover p-5 flex flex-col animate-slide-up group relative overflow-hidden"
       style={{ animationDelay: `${delay * 50}ms` }}
     >
+      {container.status === 'running' && (
+        <div className="absolute -right-16 -top-16 w-32 h-32 rounded-full blur-3xl opacity-5 bg-success group-hover:opacity-10 transition-opacity duration-500" />
+      )}
+      
       {/* Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-text-primary mb-1">{container.name}</h3>
-          <p className="text-sm text-text-secondary flex items-center gap-1.5">
-            {container.username} <span className="text-border">•</span> {container.distro}
-          </p>
+      <div className="flex justify-between items-start mb-5 relative z-10">
+        <div className="flex gap-3 items-start">
+          <div className="w-10 h-10 rounded-xl bg-surface/50 border border-border flex items-center justify-center flex-shrink-0 group-hover:border-primary/30 transition-colors">
+            <Box className="w-5 h-5 text-text-secondary group-hover:text-primary transition-colors" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-text-primary mb-1 tracking-tight leading-none mt-1">{container.name}</h3>
+            <p className="text-xs text-text-secondary flex items-center gap-1.5 font-medium">
+              {container.username} <span className="text-border">•</span> {container.distro}
+            </p>
+          </div>
         </div>
         <StatusBadge status={container.status} />
       </div>
 
       {/* Stats row (if running) */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-surface border border-border rounded-lg p-3">
-          <p className="text-xs text-text-muted mb-1 font-medium">CPU Usage</p>
-          <div className="flex items-end gap-2">
-            <span className="text-lg font-semibold text-text-primary">{cpuPercent}%</span>
-            <span className="text-xs text-text-muted mb-1">of {container.cpu_cores} Cores</span>
+      <div className="grid grid-cols-2 gap-3 mb-5 relative z-10">
+        <div className="bg-surface/30 border border-border/50 rounded-xl p-3 hover:bg-surface/50 transition-colors">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Cpu className="w-3.5 h-3.5 text-text-muted" />
+            <p className="text-[11px] text-text-muted font-medium uppercase tracking-wider">CPU</p>
           </div>
-          <div className="w-full bg-background rounded-full h-1 mt-2">
-            <div className="bg-primary h-1 rounded-full" style={{ width: `${cpuPercent}%` }} />
+          <div className="flex items-end gap-1.5 mb-2">
+            <span className="text-lg font-bold text-text-primary leading-none">{cpuPercent}%</span>
+            <span className="text-[10px] text-text-muted font-medium pb-0.5">of {container.cpu_cores} Cores</span>
+          </div>
+          <div className="w-full bg-surface border border-border/50 rounded-full h-1">
+            <div className={`h-1 rounded-full ${container.status === 'running' ? 'bg-primary shadow-[0_0_8px_rgba(124,58,237,0.5)]' : 'bg-text-muted'}`} style={{ width: `${cpuPercent}%` }} />
           </div>
         </div>
         
-        <div className="bg-surface border border-border rounded-lg p-3">
-          <p className="text-xs text-text-muted mb-1 font-medium">RAM Usage</p>
-          <div className="flex items-end gap-2">
-            <span className="text-lg font-semibold text-text-primary">{ramPercent}%</span>
-            <span className="text-xs text-text-muted mb-1">of {container.ram_mb} MB</span>
+        <div className="bg-surface/30 border border-border/50 rounded-xl p-3 hover:bg-surface/50 transition-colors">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <HardDrive className="w-3.5 h-3.5 text-text-muted" />
+            <p className="text-[11px] text-text-muted font-medium uppercase tracking-wider">RAM</p>
           </div>
-          <div className="w-full bg-background rounded-full h-1 mt-2">
-            <div className="bg-accent h-1 rounded-full" style={{ width: `${ramPercent}%` }} />
+          <div className="flex items-end gap-1.5 mb-2">
+            <span className="text-lg font-bold text-text-primary leading-none">{ramPercent}%</span>
+            <span className="text-[10px] text-text-muted font-medium pb-0.5">of {container.ram_mb} MB</span>
+          </div>
+          <div className="w-full bg-surface border border-border/50 rounded-full h-1">
+            <div className={`h-1 rounded-full ${container.status === 'running' ? 'bg-accent shadow-[0_0_8px_rgba(139,92,246,0.5)]' : 'bg-text-muted'}`} style={{ width: `${ramPercent}%` }} />
           </div>
         </div>
       </div>
       
-      <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
+      <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50 relative z-10">
         {/* Info */}
-        <div className="text-xs text-text-muted font-tech">
-          IP: {container.ip_address || '—'}
+        <div className="flex items-center gap-1.5 text-xs text-text-muted font-medium bg-surface/30 px-2.5 py-1 rounded-md border border-border/50">
+          <Globe className="w-3.5 h-3.5" />
+          <span className="font-tech mt-0.5">{container.ip_address || '—'}</span>
         </div>
         
         {/* Actions */}
@@ -78,14 +94,14 @@ export default function ContainerCard({ container, onAction, delay }) {
             <>
               <button 
                 onClick={() => onAction(container.id, 'stop')}
-                className="p-2 text-text-secondary hover:text-warning hover:bg-surface rounded-lg transition-default" 
+                className="p-2 text-text-secondary hover:text-warning hover:bg-warning/10 rounded-lg transition-default" 
                 title="Stop"
               >
                 <Square className="w-4 h-4" />
               </button>
               <button 
                 onClick={() => navigate(`/terminal/${container.id}`)}
-                className="p-2 text-primary hover:text-primary-hover hover:bg-primary/10 rounded-lg transition-default" 
+                className="p-2 text-primary hover:text-primary-hover hover:bg-primary/10 rounded-lg transition-default shadow-[0_0_10px_rgba(124,58,237,0.1)] border border-transparent hover:border-primary/20" 
                 title="Open Console"
               >
                 <Terminal className="w-4 h-4" />
@@ -94,7 +110,7 @@ export default function ContainerCard({ container, onAction, delay }) {
           ) : (
             <button 
               onClick={() => onAction(container.id, 'start')}
-              className="p-2 text-text-secondary hover:text-success hover:bg-surface rounded-lg transition-default" 
+              className="p-2 text-text-secondary hover:text-success hover:bg-success/10 rounded-lg transition-default" 
               title="Start"
             >
               <Play className="w-4 h-4" />

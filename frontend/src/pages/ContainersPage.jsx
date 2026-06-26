@@ -3,7 +3,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import ContainerCard from '../components/containers/ContainerCard';
 import CreateContainerModal from '../components/containers/CreateContainerModal';
 import { containersAPI } from '../api/client';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Box } from 'lucide-react';
 
 export default function ContainersPage() {
   const [containers, setContainers] = useState([]);
@@ -27,7 +27,6 @@ export default function ContainersPage() {
 
   useEffect(() => {
     fetchContainers();
-    // Check if we need to open the create modal from URL
     if (window.location.search.includes('create=true')) {
       setShowCreate(true);
       window.history.replaceState({}, '', '/containers');
@@ -67,15 +66,15 @@ export default function ContainersPage() {
     <DashboardLayout title="Containers">
       {/* Header with stats and actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-2 p-1 bg-surface border border-border rounded-xl">
+        <div className="flex items-center gap-1.5 p-1.5 bg-surface/50 backdrop-blur-md border border-border rounded-xl">
           {['all', 'running', 'stopped'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-default ${
                 filter === f
-                  ? 'bg-card shadow-sm text-text-primary'
-                  : 'text-text-secondary hover:text-text-primary'
+                  ? 'bg-card shadow-sm text-text-primary border border-border/50'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface/50 border border-transparent'
               }`}
             >
               {f === 'all' ? `All (${stats.total})` :
@@ -94,14 +93,14 @@ export default function ContainersPage() {
               placeholder="Filter containers..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary w-full sm:w-64 transition-default text-text-primary"
+              className="pl-9 pr-4 py-2 bg-surface/50 hover:bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 w-full sm:w-64 transition-default text-text-primary shadow-sm"
             />
           </div>
 
           {/* Create button */}
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-default shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-default shadow-[0_0_15px_rgba(124,58,237,0.2)] border border-primary/20"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">New Container</span>
@@ -112,23 +111,24 @@ export default function ContainersPage() {
       {/* Container grid */}
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(124,58,237,0.3)]" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 animate-fade-in border border-dashed border-border rounded-2xl bg-surface/30">
-          <div className="w-16 h-16 rounded-2xl bg-surface border border-border mx-auto mb-4 flex items-center justify-center text-text-muted">
-            <Filter className="w-6 h-6" />
+        <div className="flex flex-col items-center justify-center py-32 animate-fade-in border border-dashed border-border rounded-2xl bg-surface/10 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-surface/20" />
+          <div className="w-16 h-16 rounded-2xl bg-surface/50 border border-border mx-auto mb-6 flex items-center justify-center text-text-muted shadow-sm relative z-10">
+            {containers.length === 0 ? <Box className="w-6 h-6" /> : <Filter className="w-6 h-6" />}
           </div>
-          <p className="text-text-primary font-medium text-lg mb-1">
+          <p className="text-text-primary font-medium text-lg mb-2 relative z-10">
             {containers.length === 0 ? 'No containers yet' : 'No matching containers'}
           </p>
-          <p className="text-text-secondary text-sm mb-6">
+          <p className="text-text-secondary text-sm mb-8 relative z-10">
             {containers.length === 0 ? 'Create your first Linux environment to get started.' : 'Try adjusting your search filters.'}
           </p>
           {containers.length === 0 && (
             <button
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-default shadow-sm"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-default shadow-[0_0_20px_rgba(124,58,237,0.25)] border border-primary/20 relative z-10"
             >
               <Plus className="w-4 h-4" />
               Create Container
@@ -136,7 +136,7 @@ export default function ContainersPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((container, i) => (
             <ContainerCard
               key={container.id}
