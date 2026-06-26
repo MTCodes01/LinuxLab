@@ -27,28 +27,41 @@ function Sparkline({ points, strokeColor = "var(--color-primary)" }) {
 
 function StatCard({ title, value, trend, trendType = "up", points, icon: Icon, colorClass }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm hover:border-border-hover transition-default animate-slide-up">
-      <div>
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">{title}</span>
-          <Icon className={`w-3.5 h-3.5 ${colorClass} opacity-80`} />
-        </div>
-        
-        <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-xl font-bold text-text-primary tracking-tight font-tech">{value}</span>
+    <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm hover:border-border-hover transition-default animate-slide-up h-24 relative overflow-hidden group">
+      <div className="flex justify-between items-start w-full relative z-10">
+        <div>
+          <div className="flex items-center gap-1.5 mb-1 opacity-70 group-hover:opacity-100 transition-opacity">
+            <Icon className={`w-3.5 h-3.5 ${colorClass}`} />
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">{title}</span>
+          </div>
+          
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className="text-2xl font-bold text-text-primary tracking-tight font-tech">{value}</span>
+          </div>
           {trend && (
-            <span className={`text-[10px] font-semibold font-mono ${
+            <div className={`text-[10px] font-semibold font-mono mt-1 ${
               trendType === "up" ? "text-success" : 
               trendType === "down" ? "text-danger" : "text-text-muted"
             }`}>
               {trend}
-            </span>
+            </div>
           )}
         </div>
+
+        <div className="w-20 h-10 ml-2 mt-2 opacity-80">
+          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 30" preserveAspectRatio="none">
+            <path
+              d={points}
+              fill="none"
+              stroke={`var(--color-${colorClass.includes('primary') ? 'primary' : colorClass.includes('success') ? 'success' : colorClass.includes('warning') ? 'warning' : 'accent'})`}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="drop-shadow-sm"
+            />
+          </svg>
+        </div>
       </div>
-      
-      {/* Sparkline chart at the bottom (like the second image) */}
-      <Sparkline points={points} strokeColor={`var(--color-${colorClass.includes('primary') ? 'primary' : colorClass.includes('success') ? 'success' : colorClass.includes('warning') ? 'warning' : 'accent'})`} />
     </div>
   );
 }

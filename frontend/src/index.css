@@ -1,41 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Colors - Clean Modern Dark Theme */
-  --color-background: #09090B;
-  --color-surface: #0F0F11;
-  --color-card: #18181B;
-  
-  --color-primary: #8B5CF6;
-  --color-primary-hover: #7C3AED;
-  --color-accent: #A78BFA;
-  
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
+  /* Colors - Deep Purple Dark Theme */
+  --color-background: #0D0B1A;
+  --color-surface: #13111F;
+  --color-card: #1A1729;
+  --color-card-hover: #201D33;
 
-  --color-text-primary: #FAFAFA;
-  --color-text-secondary: #A1A1AA;
-  --color-text-muted: #71717A;
+  --color-primary: #9B6DFF;
+  --color-primary-hover: #8B5CF6;
+  --color-accent: #C084FC;
 
-  --color-border: #27272A;
-  --color-border-hover: #3F3F46;
+  --color-success: #22D3A5;
+  --color-warning: #FBBF24;
+  --color-danger: #F87171;
+
+  --color-text-primary: #F0EEF8;
+  --color-text-secondary: #9B99B3;
+  --color-text-muted: #5C5A72;
+
+  --color-border: rgba(155, 109, 255, 0.12);
+  --color-border-hover: rgba(155, 109, 255, 0.28);
 
   /* Typography */
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  /* Shadows - Soft and Premium */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.8);
-  --shadow-card: 0 2px 8px 0 rgba(0, 0, 0, 0.5);
-  --shadow-card-hover: 0 4px 16px 0 rgba(0, 0, 0, 0.6);
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.7);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 40px rgba(155, 109, 255, 0.15);
 }
 
-/* ─── Base Styles ───────────────────────────────────── */
+/* ─── Base ─── */
 * {
   margin: 0;
   padding: 0;
@@ -46,122 +48,79 @@ html {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-background);
+  background: var(--color-background);
 }
 
 body {
-  background-color: var(--color-background);
+  background: var(--color-background);
   color: var(--color-text-primary);
   min-height: 100vh;
   width: 100vw;
   overflow-x: hidden;
 }
 
-/* ─── Scrollbar ─────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #27272A;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3F3F46;
-}
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(155, 109, 255, 0.2); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(155, 109, 255, 0.4); }
 
-/* ─── Typography Utils ──────────────────────────────── */
-.font-tech {
-  font-family: var(--font-mono);
-}
+/* ─── Utilities ─── */
+.font-tech { font-family: var(--font-mono); }
 
-/* ─── Modern Component Utils ───────────────────────── */
-.transition-default {
-  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
-}
+.transition-default { transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1); }
 
-/* Redesigned solid card styles (replaces translucent glass) */
+/* Solid card panels with subtle purple border */
 .glass {
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: var(--shadow-card);
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-hover:hover {
   border-color: var(--color-border-hover);
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
 }
 
-/* Stat Cards */
 .stat-card {
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: var(--shadow-card);
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .stat-card:hover {
   border-color: var(--color-border-hover);
-  box-shadow: var(--shadow-card-hover);
 }
 
-/* ─── Animations ───────────────────────────────────── */
+/* ─── Animations ─── */
 @keyframes slide-up {
-  0% { opacity: 0; transform: translateY(8px); }
+  0%   { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
 }
-
-.animate-slide-up {
-  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+.animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 @keyframes fade-in {
-  0% { opacity: 0; }
+  0%   { opacity: 0; }
   100% { opacity: 1; }
 }
+.animate-fade-in { animation: fade-in 0.25s ease-out forwards; }
 
-.animate-fade-in {
-  animation: fade-in 0.2s ease-out forwards;
-}
-
-/* ─── Status Badges ───────────────────────────────────── */
+/* ─── Status Badges ─── */
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  transition: all 150ms ease-in-out;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
-.status-running {
-  background: rgba(16, 185, 129, 0.06);
-  color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.15);
-}
-
-.status-stopped {
-  background: rgba(161, 161, 170, 0.06);
-  color: var(--color-text-secondary);
-  border: 1px solid rgba(161, 161, 170, 0.15);
-}
-
-.status-starting {
-  background: rgba(245, 158, 11, 0.06);
-  color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.15);
-}
-
-.status-error {
-  background: rgba(239, 68, 68, 0.06);
-  color: var(--color-danger);
-  border: 1px solid rgba(239, 68, 68, 0.15);
-}
+.status-running  { background: rgba(34, 211, 165, 0.08); color: var(--color-success); border: 1px solid rgba(34, 211, 165, 0.18); }
+.status-stopped  { background: rgba(155, 153, 179, 0.08); color: var(--color-text-secondary); border: 1px solid rgba(155, 153, 179, 0.18); }
+.status-starting { background: rgba(251, 191, 36, 0.08); color: var(--color-warning); border: 1px solid rgba(251, 191, 36, 0.18); }
+.status-error    { background: rgba(248, 113, 113, 0.08); color: var(--color-danger); border: 1px solid rgba(248, 113, 113, 0.18); }
