@@ -118,7 +118,7 @@ async def terminal_websocket(
                     dc = client.containers.get(container.docker_id)
                     exec_instance = client.api.exec_create(
                         dc.id,
-                        cmd=["/bin/bash", "-c", f"su - {container.username} 2>/dev/null || exec /bin/bash"],
+                        cmd=["su", "-", container.username],
                         stdin=True,
                         stdout=True,
                         stderr=True,
