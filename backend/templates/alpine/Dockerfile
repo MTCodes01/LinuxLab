@@ -9,7 +9,7 @@ RUN apk add --no-cache \
     tmux htop tree \
     net-tools iputils iproute2 bind-tools \
     openssh-server \
-    man-db man-pages mandoc \
+    man-pages mandoc \
     zip unzip tar gzip \
     ca-certificates gnupg
 

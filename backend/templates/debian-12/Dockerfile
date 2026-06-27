@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Generate locale at build time
-RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen && update-locale LANG=en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
 
 # SSH config (do NOT mkdir /run/sshd here — /run is a tmpfs at runtime)
