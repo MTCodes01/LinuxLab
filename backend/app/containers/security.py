@@ -71,7 +71,7 @@ def get_host_config(
 
         # ─── Privilege restrictions ────────────────────
         "privileged": False,
-        "security_opt": ["no-new-privileges:true"],
+        "security_opt": [],
 
         # ─── Resource limits ───────────────────────────
         "nano_cpus": int(cpu_limit * 1e9),
